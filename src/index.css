@@ -1,0 +1,235 @@
+@font-face {
+  font-family: 'Lucida Sans Unicode Regular';
+  src: url('/fonts/LucidaSansUnicode.ttf') format('truetype'),
+       local('Lucida Sans Unicode Regular'),
+       local('Lucida Sans Unicode'),
+       local('Lucida Grande');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lucida Sans Unicode';
+  src: url('/fonts/LucidaSansUnicode.ttf') format('truetype'),
+       local('Lucida Sans Unicode Regular'),
+       local('Lucida Sans Unicode'),
+       local('Lucida Grande');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+    font-family: 'Lucida Sans Unicode Regular', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif !important;
+    font-synthesis: weight style;
+  }
+  html, body {
+    background-color: #F3F3F3;
+    color: #1F1E1D;
+    font-family: 'Lucida Sans Unicode Regular', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif !important;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    font-synthesis: weight style;
+  }
+
+  /* HEADLINES IN EVERY SECTION & ANY PART SHOULD BE IN BOLD LETTERS */
+  h1, h2, h3, h4, h5, h6,
+  strong, b,
+  .font-bold,
+  .font-extrabold,
+  .font-black,
+  .headline-bold {
+    font-weight: 900 !important;
+    -webkit-text-stroke: 0.35px currentColor;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Institutional Color Theme Tokens */
+:root {
+  --maroon-deep: #650000;
+  --maroon-dark: #500000;
+  --crimson-red: #A60000;
+  --golden-yellow: #FFE59A;
+  --gold: #E5BD55;
+  --white: #FFFFFF;
+  --bg-color: #F3F3F3;
+}
+
+/* 4. BUTTON INTERACTIONS – PHYSICAL FEEDBACK */
+.btn-primary,
+.apple-button-primary {
+  background-color: #A60000;
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 9999px;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(101, 0, 0, 0.2);
+  will-change: transform, box-shadow;
+}
+
+.btn-primary:hover,
+.apple-button-primary:hover {
+  background-color: #C00000;
+  box-shadow: 0 6px 18px rgba(229, 189, 85, 0.4), 0 3px 8px rgba(166, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active,
+.apple-button-primary:active {
+  transform: translateY(0px) scale(0.97);
+  box-shadow: 0 2px 5px rgba(101, 0, 0, 0.25);
+  transition-duration: 0.12s;
+}
+
+.apple-button {
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.apple-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(229, 189, 85, 0.25);
+}
+.apple-button:active {
+  transform: scale(0.97);
+}
+
+/* 3. INTERACTIVE DASHBOARD CARDS – EXPANSION ON HOVER */
+.apple-card {
+  background: #FFFFFF;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 16px -2px rgba(50, 40, 30, 0.06);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, box-shadow, border-color;
+}
+
+.apple-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  border-color: #E5BD55;
+  box-shadow: 0 20px 35px -6px rgba(101, 0, 0, 0.12), 0 8px 16px -4px rgba(229, 189, 85, 0.15);
+}
+
+.apple-card:active {
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 0.15s;
+}
+
+/* 5. ICON MICRO-INTERACTIONS */
+.icon-shake:hover {
+  animation: iconShake 0.5s ease-in-out;
+}
+@keyframes iconShake {
+  0%, 100% { transform: rotate(0deg); }
+  20%, 60% { transform: rotate(-10deg); }
+  40%, 80% { transform: rotate(10deg); }
+}
+
+.icon-bounce:hover {
+  animation: iconBounce 0.45s ease-in-out;
+}
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px) scale(1.08); }
+}
+
+.icon-pulse:hover {
+  transform: scale(1.12);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 6. MODAL & POPUP SPRING ANIMATION */
+@keyframes appleModalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.apple-modal-enter {
+  animation: appleModalPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(166, 0, 0, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(101, 0, 0, 0.7);
+}
+
+/* User Custom Loader with Blur Background (Red, Gold, White, Dark Yellow) */
+.loading {
+ --speed-of-animation: 0.9s;
+ --gap: 6px;
+ --first-color: #A60000;
+ --second-color: #E5BD55;
+ --third-color: #FFFFFF;
+ --fourth-color: #F59E0B;
+ --fifth-color: #650000;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ width: 100px;
+ gap: 6px;
+ height: 100px;
+}
+
+.loading span {
+ width: 4px;
+ height: 50px;
+ background: var(--first-color);
+ border-radius: 9999px;
+ animation: scale var(--speed-of-animation) ease-in-out infinite;
+}
+
+.loading span:nth-child(2) {
+ background: var(--second-color);
+ animation-delay: -0.8s;
+}
+
+.loading span:nth-child(3) {
+ background: var(--third-color);
+ animation-delay: -0.7s;
+}
+
+.loading span:nth-child(4) {
+ background: var(--fourth-color);
+ animation-delay: -0.6s;
+}
+
+.loading span:nth-child(5) {
+ background: var(--fifth-color);
+ animation-delay: -0.5s;
+}
+
+@keyframes scale {
+ 0%, 40%, 100% {
+  transform: scaleY(0.05);
+ }
+
+ 20% {
+  transform: scaleY(1);
+ }
+}
+
