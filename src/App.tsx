@@ -4,10 +4,6 @@ import { AuthProvider } from './context/AuthContext';
 import { PortalProvider } from './context/PortalContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Public Pages
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-
 // Student Pages
 import StudentDashboard from './pages/student/StudentDashboard';
 import AnnouncementsPage from './pages/student/AnnouncementsPage';
@@ -62,11 +58,6 @@ export default function App() {
             {/* Professor / Faculty Routes */}
             <Route path="/professor/dashboard" element={<ERPPortalPage initialRole="teacher" initialModule="dashboard" />} />
             <Route path="/professor/*" element={<ERPPortalPage initialRole="teacher" />} />
-
-            {/* Optional Public Login and Marketing Previews */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/login/:role" element={<LoginPage />} />
-            <Route path="/home" element={<HomePage />} />
 
             {/* Fallback to ERP Portal */}
             <Route path="*" element={<ERPPortalPage />} />
