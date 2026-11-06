@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   X,
   Maximize2,
@@ -56,7 +57,7 @@ export default function IndividualStudentExamReportModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullScreen, onClose, selectedQuestion]);
 
-  if (!student) return null;
+  if (!student || typeof document === 'undefined') return null;
 
   const batteryColor =
     student.batteryPercentage <= 20
@@ -74,12 +75,16 @@ export default function IndividualStudentExamReportModal({
       ? 'bg-stone-200 text-stone-700 border-stone-300'
       : 'bg-amber-100 text-amber-800 border-amber-300';
 
-  return (
+  return createPortal(
     <div
       style={{
-        left: typeof window !== 'undefined' && window.innerWidth >= 768 ? sidebarWidth : 0,
+        left: 0,
+        paddingLeft:
+          typeof window !== 'undefined' && window.innerWidth >= 768 && !isFullScreen
+            ? sidebarWidth + 24
+            : undefined,
       }}
-      className={`fixed top-0 bottom-0 right-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 ${
+      className={`fixed top-0 bottom-0 right-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 ${
         isFullScreen ? 'p-1.5 md:p-3' : 'p-3 md:p-6'
       }`}
     >
@@ -730,7 +735,8 @@ export default function IndividualStudentExamReportModal({
           </div>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

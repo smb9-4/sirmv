@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, XCircle, Clock, Award, BookOpen, AlertCircle, Check, Maximize2, Minimize2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { PastExamRecord } from '../pucAcademicData';
 import AnimatedCounter from './AnimatedCounter';
 
@@ -28,14 +30,34 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullScreen, onClose]);
 
-  if (!exam) return null;
+  useEffect(() => {
+    setIsFullScreen(false);
+  }, [exam?.id]);
 
-  return (
+  if (!exam || typeof document === 'undefined') return null;
+
+  const subjectPerformance = exam.subjectScores.map(({ subject, obtained, max }) => ({
+    subject,
+    obtained,
+    max,
+    percentage: max > 0 ? Math.min(100, Math.max(0, Math.round((obtained / max) * 100))) : 0,
+  }));
+  const overallPercentage = Math.min(100, Math.max(0, exam.percentage));
+  const bestSubject = subjectPerformance.reduce<(typeof subjectPerformance)[number] | null>(
+    (best, subject) => (best === null || subject.percentage > best.percentage ? subject : best),
+    null,
+  );
+
+  return createPortal(
     <div
       style={{
-        left: typeof window !== 'undefined' && window.innerWidth >= 768 ? sidebarWidth : 0,
+        left: 0,
+        paddingLeft:
+          typeof window !== 'undefined' && window.innerWidth >= 768 && !isFullScreen
+            ? sidebarWidth + 24
+            : undefined,
       }}
-      className={`fixed top-0 bottom-0 right-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm transition-all duration-300 ${
+      className={`fixed top-0 bottom-0 right-0 z-[70] flex items-center justify-center bg-black/45 backdrop-blur-sm transition-all duration-300 ${
         isFullScreen ? 'p-1.5 md:p-3' : 'p-3 md:p-6'
       }`}
     >
@@ -97,7 +119,7 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
                   ? 'bg-[#650000] text-[#FFE59A] border-[#650000]'
                   : 'bg-stone-100 hover:bg-[#FFE59A] text-stone-600 hover:text-[#650000] border-stone-200'
               }`}
-              title={isFullScreen ? "Restore normal size" : "Expand to Full Screen (Sidebar remains visible)"}
+              title={isFullScreen ? "Restore normal size" : "Expand to Full Screen"}
             >
               {isFullScreen ? (
                 <Minimize2 size={17} />
@@ -162,8 +184,120 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
           </div>
         </div>
 
-        {/* Scrollable Questions Review List */}
+        {/* Performance analysis and question-by-question review */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          <section aria-labelledby="performance-analysis-title" className="space-y-4">
+            <div>
+              <h4 id="performance-analysis-title" className="font-bold text-sm uppercase tracking-wider text-stone-700">
+                Student Performance Analysis
+              </h4>
+              <p className="mt-1 text-xs text-stone-500">Exam score and subject strengths at a glance.</p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <article className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
+                <h5 className="text-xs font-bold uppercase tracking-wide text-stone-500">Overall Performance</h5>
+                <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row">
+                  <div
+                    className="h-36 w-36 shrink-0 rounded-full p-[10px]"
+                    role="img"
+                    aria-label={`Overall exam score ${overallPercentage.toFixed(1)} percent`}
+                    style={{
+                      background: `conic-gradient(#650000 ${overallPercentage}%, #e7e5e4 ${overallPercentage}% 100%)`,
+                    }}
+                  >
+                    <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white">
+                      <strong className="text-3xl font-black text-[#650000]">{overallPercentage.toFixed(1)}%</strong>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Overall Score</span>
+                    </div>
+                  </div>
+
+                  <div className="grid w-full grid-cols-2 gap-3 text-center sm:grid-cols-1 sm:text-left">
+                    <div className="rounded-xl bg-white px-3 py-2">
+                      <span className="block text-[10px] font-bold uppercase text-stone-400">Marks</span>
+                      <strong className="text-sm text-stone-800">{exam.marksObtained} / {exam.totalMarks}</strong>
+                    </div>
+                    <div className="rounded-xl bg-white px-3 py-2">
+                      <span className="block text-[10px] font-bold uppercase text-stone-400">Cohort Rank</span>
+                      <strong className="text-sm text-stone-800">#{exam.cohortRank} of {exam.totalCohortStudents}</strong>
+                    </div>
+                    {bestSubject && (
+                      <div className="col-span-2 rounded-xl bg-amber-100/70 px-3 py-2 sm:col-span-1">
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-amber-800">
+                          <Award size={12} /> Best Subject
+                        </span>
+                        <strong className="text-sm text-amber-950">
+                          {bestSubject.subject} ({bestSubject.percentage}%)
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </article>
+
+              <article className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
+                <h5 className="text-xs font-bold uppercase tracking-wide text-stone-500">Subject-wise Performance</h5>
+                <p className="mt-1 text-[11px] text-stone-400">Percentage of marks earned in each subject.</p>
+                <div className="mt-4 space-y-4">
+                  {subjectPerformance.map(({ subject, obtained, max, percentage }) => (
+                    <div key={subject}>
+                      <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-stone-700">{subject}</span>
+                        <span className="shrink-0 font-bold text-stone-600">
+                          {obtained}/{max} · {percentage}%
+                        </span>
+                      </div>
+                      <div
+                        className="h-2.5 overflow-hidden rounded-full bg-stone-200"
+                        role="progressbar"
+                        aria-label={`${subject} score`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={percentage}
+                      >
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#650000] to-[#C2410C] transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </div>
+
+            <article className="rounded-2xl border border-stone-200 bg-white p-4">
+              <div className="mb-2">
+                <h5 className="text-xs font-bold uppercase tracking-wide text-stone-500">Subject Radar Chart</h5>
+                <p className="mt-1 text-[11px] text-stone-400">Compare this student’s scores across the exam subjects.</p>
+              </div>
+              <div className="h-56 w-full">
+                {subjectPerformance.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={subjectPerformance} outerRadius="72%">
+                      <PolarGrid stroke="#e7e5e4" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#57534e', fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tickCount={5} tick={{ fill: '#a8a29e', fontSize: 9 }} />
+                      <Radar
+                        name="Student score"
+                        dataKey="percentage"
+                        stroke="#650000"
+                        strokeWidth={2}
+                        fill="#A60000"
+                        fillOpacity={0.24}
+                      />
+                      <Tooltip formatter={(value) => [`${value}%`, 'Score']} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-stone-400">
+                    No subject score data available.
+                  </div>
+                )}
+              </div>
+            </article>
+          </section>
+
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-xs uppercase tracking-wider text-stone-500">
               Detailed Question-by-Question Analysis ({exam.questionsReview.length} Diagnostic MCQs)
@@ -326,6 +460,7 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
           </div>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   X,
   Maximize2,
@@ -17,8 +18,14 @@ import {
   CheckCircle2,
   Clock,
   Activity,
+  BarChart3,
+  PlayCircle,
 } from 'lucide-react';
-import type { StudentTabletRecord } from '../../tabletIntelligenceData';
+import {
+  getTabletMacAddress,
+  getTabletSerialNumber,
+  type StudentTabletRecord,
+} from '../../tabletIntelligenceData';
 
 interface DeviceHealthDetailModalProps {
   device: StudentTabletRecord | null;
@@ -32,7 +39,7 @@ export default function DeviceHealthDetailModal({
   sidebarWidth = 86,
 }: DeviceHealthDetailModalProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'health' | 'logs' | 'maintenance'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'logs' | 'maintenance' | 'usage'>('health');
 
   // ESC key listener
   useEffect(() => {
@@ -49,7 +56,7 @@ export default function DeviceHealthDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullScreen, onClose]);
 
-  if (!device) return null;
+  if (!device || typeof document === 'undefined') return null;
 
   const batteryColor =
     device.batteryPercentage <= 20
@@ -66,13 +73,35 @@ export default function DeviceHealthDetailModal({
       : device.deviceStatus === 'Offline'
       ? 'bg-stone-200 text-stone-700 border-stone-300'
       : 'bg-amber-100 text-amber-800 border-amber-300';
+  const studentNumber = Number.parseInt(device.usn, 10) || 0;
+  const weeklyUsage = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => ({
+    day,
+    minutes: 75 + ((studentNumber * (index + 3) * 7) % 220),
+  }));
+  const dailyUsageMinutes = weeklyUsage[6].minutes;
+  const weeklyUsageMinutes = weeklyUsage.reduce((total, day) => total + day.minutes, 0);
+  const watchedContent = [
+    'Cell Division: Meiosis Explained',
+    'Laws of Motion: Solved Examples',
+    'Organic Chemistry: Functional Groups',
+  ].map((title, index) => ({
+    title,
+    duration: 8 + ((studentNumber * (index + 2)) % 14),
+    watchedAt: ['Today, 4:15 PM', 'Yesterday, 6:20 PM', 'This week, 7:05 PM'][index],
+  }));
+  const watchTimeMinutes = watchedContent.reduce((total, item) => total + item.duration, 0);
+  const formatMinutes = (minutes: number) => `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 
-  return (
+  return createPortal(
     <div
       style={{
-        left: typeof window !== 'undefined' && window.innerWidth >= 768 ? sidebarWidth : 0,
+        left: 0,
+        paddingLeft:
+          typeof window !== 'undefined' && window.innerWidth >= 768 && !isFullScreen
+            ? sidebarWidth + 24
+            : undefined,
       }}
-      className={`fixed top-0 bottom-0 right-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 ${
+      className={`fixed top-0 bottom-0 right-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 ${
         isFullScreen ? 'p-1.5 md:p-3' : 'p-3 md:p-6'
       }`}
     >
@@ -115,7 +144,10 @@ export default function DeviceHealthDetailModal({
                 </span>
               </div>
               <p className="text-xs text-stone-500 mt-0.5">
-                Serial: SMV-TAB-{device.usn}-88X • {device.osVersion} • Uptime: {device.uptimeHours} hrs
+                Roll No: {device.rollNumber} • {device.class} • Section {device.section}
+              </p>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Serial: {getTabletSerialNumber(device)} • {device.osVersion} • Uptime: {device.uptimeHours} hrs
               </p>
             </div>
           </div>
@@ -150,12 +182,13 @@ export default function DeviceHealthDetailModal({
         </div>
 
         {/* Tab Strip */}
-        <div className="px-6 py-2.5 bg-stone-50 border-b border-stone-200 flex items-center justify-between text-xs shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="px-4 md:px-6 py-3 bg-stone-50 border-b border-stone-200 flex flex-col gap-2 text-xs shrink-0 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid w-full grid-cols-2 gap-2 xl:flex xl:w-auto">
             {[
               { id: 'health', label: 'Hardware Telemetry & Battery Health', icon: Activity },
               { id: 'logs', label: 'Crash Logs & System Events', icon: Clock },
               { id: 'maintenance', label: 'Maintenance & Remote MDM', icon: Wrench },
+              { id: 'usage', label: 'Usage & Watch History', icon: BarChart3 },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -163,21 +196,21 @@ export default function DeviceHealthDetailModal({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+                  className={`w-full min-h-10 px-2.5 py-2 rounded-xl font-bold flex items-center justify-start gap-1.5 text-left transition-all xl:w-auto xl:px-3.5 xl:justify-center ${
                     isActive
                       ? 'bg-[#650000] text-white shadow-xs'
                       : 'text-stone-600 hover:bg-stone-200/70 hover:text-stone-900'
                   }`}
                 >
-                  <Icon size={14} />
-                  <span>{tab.label}</span>
+                  <Icon size={14} className="shrink-0" />
+                  <span className="leading-tight">{tab.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <span className="text-[11px] font-mono text-stone-500">
-            MAC: 48:E2:44:A1:{device.usn}:1C
+          <span className="self-end text-[10px] font-mono text-stone-500 xl:self-auto xl:text-[11px]">
+            MAC: {getTabletMacAddress(device)}
           </span>
         </div>
 
@@ -186,7 +219,7 @@ export default function DeviceHealthDetailModal({
           {activeTab === 'health' && (
             <div className="space-y-6">
               {/* Telemetry Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3.5">
                 <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
                     Battery Level & Health
@@ -383,6 +416,81 @@ export default function DeviceHealthDetailModal({
               </div>
             </div>
           )}
+
+          {activeTab === 'usage' && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-800">
+                Illustrative usage and learning-video history for this sample student.
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Daily device usage', value: formatMinutes(dailyUsageMinutes), icon: Activity },
+                  { label: 'Weekly device usage', value: formatMinutes(weeklyUsageMinutes), icon: BarChart3 },
+                  { label: 'Learning video watchtime', value: formatMinutes(watchTimeMinutes), icon: PlayCircle },
+                ].map((metric) => {
+                  const Icon = metric.icon;
+                  return (
+                    <div key={metric.label} className="rounded-2xl border border-stone-200 bg-white p-4">
+                      <div className="flex items-center gap-2 text-stone-500">
+                        <Icon size={15} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{metric.label}</span>
+                      </div>
+                      <p className="mt-2 text-2xl font-black text-stone-900">{metric.value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <section className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-stone-800">Daily usage this week</h4>
+                  <div className="mt-4 h-36 flex items-end justify-between gap-2">
+                    {weeklyUsage.map((day) => (
+                      <div key={day.day} className="h-full flex-1 flex flex-col items-center justify-end gap-2">
+                        <span className="text-[9px] text-stone-500">{formatMinutes(day.minutes)}</span>
+                        <div
+                          className="w-full max-w-8 rounded-t-lg bg-sky-500"
+                          style={{ height: `${Math.max(14, (day.minutes / Math.max(...weeklyUsage.map((item) => item.minutes))) * 100)}%` }}
+                        />
+                        <span className="text-[10px] font-bold text-stone-500">{day.day}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-stone-200 bg-white p-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-stone-800">Learning videos watched</h4>
+                  <div className="mt-3 space-y-3">
+                    {watchedContent.map((item) => (
+                      <div key={item.title} className="flex items-start gap-3 rounded-xl bg-stone-50 p-3">
+                        <div className="mt-0.5 rounded-lg bg-sky-100 p-2 text-sky-700">
+                          <PlayCircle size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-stone-800">{item.title}</p>
+                          <p className="mt-1 text-[10px] text-stone-500">Sir MV Learning Library • {item.watchedAt}</p>
+                        </div>
+                        <span className="shrink-0 text-[10px] font-bold text-stone-500">{item.duration} min</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <section className="rounded-2xl border border-stone-200 bg-white p-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-stone-800">Recent app and domain activity</h4>
+                <p className="mt-2 text-xs text-stone-600">{device.activeApp}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {device.browserDomainUsage.map((domain) => (
+                    <span key={domain} className="rounded-full bg-stone-100 px-3 py-1 text-[10px] font-medium text-stone-600">
+                      {domain}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
         </div>
 
         {/* Modal Bottom Close */}
@@ -399,7 +507,8 @@ export default function DeviceHealthDetailModal({
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

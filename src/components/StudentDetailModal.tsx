@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Award, CheckCircle2, TrendingUp, CalendarCheck, Mail, Phone, BookOpen, AlertCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import type { StudentAnalysisRecord } from '../rosterData';
 import AnimatedCounter from './AnimatedCounter';
 
@@ -38,7 +39,7 @@ export default function StudentDetailModal({ student, onClose, sidebarWidth = 86
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullScreen, onClose]);
 
-  if (!student) return null;
+  if (!student || typeof document === 'undefined') return null;
 
   // Let's compute a 600-scale total board mark (e.g. 500 / 600) for realistic PUC standards
   const totalBoardMarks = Math.min(600, Math.round(student.jeeMockScore * 2 + 76)); // e.g. 500, 524, etc.
@@ -49,12 +50,16 @@ export default function StudentDetailModal({ student, onClose, sidebarWidth = 86
   const csBoard = Math.min(100, Math.round(89 + (student.rank % 9)));
   const statisticsBoard = Math.min(100, Math.round(84 + (student.rank % 14)));
 
-  return (
+  return createPortal(
     <div
       style={{
-        left: typeof window !== 'undefined' && window.innerWidth >= 768 ? sidebarWidth : 0,
+        left: 0,
+        paddingLeft:
+          typeof window !== 'undefined' && window.innerWidth >= 768 && !isFullScreen
+            ? sidebarWidth + 16
+            : undefined,
       }}
-      className={`fixed top-0 bottom-0 right-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-md transition-all duration-300 ${
+      className={`fixed top-0 bottom-0 right-0 z-[70] flex items-center justify-center bg-black/45 backdrop-blur-md transition-all duration-300 ${
         isFullScreen ? 'p-1.5 md:p-3' : 'p-4'
       }`}
     >
@@ -124,7 +129,7 @@ export default function StudentDetailModal({ student, onClose, sidebarWidth = 86
                   ? 'bg-[#650000] text-[#FFE59A] border-[#650000]'
                   : 'bg-stone-100 hover:bg-[#FFE59A] text-stone-600 hover:text-[#650000] border-stone-200'
               }`}
-              title={isFullScreen ? "Restore normal size" : "Expand to Full Screen (Sidebar remains visible)"}
+              title={isFullScreen ? "Restore normal size" : "Expand to Full Screen"}
             >
               {isFullScreen ? (
                 <Minimize2 size={17} />
@@ -310,6 +315,7 @@ export default function StudentDetailModal({ student, onClose, sidebarWidth = 86
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

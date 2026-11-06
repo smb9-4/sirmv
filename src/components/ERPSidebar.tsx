@@ -203,7 +203,7 @@ export default function ERPSidebar({
     <motion.aside
       animate={{ width: isExpanded ? 236 : 86 }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-      className={`shrink-0 bg-white border-r border-stone-200/90 h-screen sticky top-0 flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.02)] overflow-x-hidden ${
+      className={`shrink-0 bg-white border-r border-stone-200/90 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.02)] overflow-x-hidden ${
         isExpanded ? 'w-[236px] min-w-[236px]' : 'w-[86px] min-w-[86px]'
       }`}
     >

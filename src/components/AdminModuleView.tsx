@@ -1,7 +1,105 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Cpu, Wifi, Lock, BarChart2, Shield, Clock, FileText, Bell, Settings } from 'lucide-react';
+import { ArrowLeft, Cpu, Wifi, Lock, BarChart2, Shield, Clock, FileText, Bell, Settings, Search, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { ERPModuleId, ADMIN_NAV_SECTIONS } from '../components/erpNavConfig';
+import DeviceHealthDetailModal from './tabletIntelligence/DeviceHealthDetailModal';
+import {
+  getTabletMacAddress,
+  getTabletSerialNumber,
+  LIVE_100_STUDENT_TABLETS,
+  StudentTabletRecord,
+} from '../tabletIntelligenceData';
+
+const ACTIVE_EXAMS = [
+  { id: 'ipu-neet', label: 'I PU NEET', classPrefix: 'I PU' },
+  { id: 'iipu-jee', label: 'II PU JEE', classPrefix: 'II PU' },
+] as const;
+
+type ActiveExamId = typeof ACTIVE_EXAMS[number]['id'];
+
+interface StudentTableColumn {
+  label: string;
+  value: (record: StudentTabletRecord) => string;
+  selectable?: boolean;
+  action?: boolean;
+}
+
+const STUDENT_TABLE_COLUMNS: Record<string, StudentTableColumn[]> = {
+  device_admin: [
+    { label: 'Student', value: (record) => record.studentName },
+    { label: 'Roll Number', value: (record) => record.rollNumber },
+    { label: 'Tablet', value: (record) => record.assignedTabletId },
+    { label: 'Section', value: (record) => record.section },
+    { label: 'Battery', value: (record) => `${record.batteryPercentage}%` },
+    { label: 'Battery Health', value: (record) => `${record.batteryHealth}%` },
+    { label: 'Device Status', value: (record) => record.deviceStatus },
+    { label: 'Network', value: (record) => record.networkStatus },
+  ],
+  exam_control: [
+    { label: 'Student', value: (record) => record.studentName },
+    { label: 'Roll Number', value: (record) => record.rollNumber },
+    { label: 'Tablet', value: (record) => record.assignedTabletId },
+    { label: 'Section', value: (record) => record.section },
+    { label: 'Questions', value: (record) => `${record.questionsAttempted} / 100` },
+    { label: 'Submission', value: (record) => record.submissionStatus },
+    { label: 'Time Remaining', value: (record) => typeof record.timeRemainingMinutes === 'number' ? `${record.timeRemainingMinutes} min` : record.timeRemainingMinutes },
+    { label: 'Last Activity', value: (record) => record.lastActivity },
+  ],
+  student_activity: [
+    { label: 'Student', value: (record) => record.studentName },
+    { label: 'Roll Number', value: (record) => record.rollNumber },
+    { label: 'Tablet', value: (record) => record.assignedTabletId },
+    { label: 'Active App', value: (record) => record.activeApp },
+    { label: 'Focus Time', value: (record) => `${record.foregroundDurationMinutes} min` },
+    { label: 'Tab Switches', value: (record) => String(record.tabSwitchCount) },
+    { label: 'Idle Time', value: (record) => `${record.idleDurationSeconds} sec` },
+  ],
+  security_remote: [
+    { label: 'Student', value: (record) => record.studentName },
+    { label: 'Roll Number', value: (record) => record.rollNumber },
+    { label: 'Tablet', value: (record) => record.assignedTabletId },
+    { label: 'Device Status', value: (record) => record.deviceStatus },
+    { label: 'Screen Status', value: (record) => record.screenStatus },
+    { label: 'Security Incident', value: (record) => record.securityIncident?.type ?? 'None' },
+    { label: 'Severity', value: (record) => record.securityIncident?.severity ?? 'Clear' },
+  ],
+  reports_intelligence: [
+    { label: 'Student', value: (record) => record.studentName },
+    { label: 'Roll Number', value: (record) => record.rollNumber },
+    { label: 'Section', value: (record) => record.section },
+    { label: 'Attendance', value: (record) => record.attendanceStatus },
+    { label: 'Check-in', value: (record) => record.checkInTime },
+    { label: 'Avg Accuracy', value: (record) => `${record.averageAccuracy}%` },
+    { label: 'AI Insight', value: (record) => record.aiPrediction?.category ?? 'No alert' },
+  ],
+};
+
+const DEFAULT_STUDENT_TABLE_COLUMNS: StudentTableColumn[] = [
+  { label: 'Student', value: (record) => record.studentName },
+  { label: 'Roll Number', value: (record) => record.rollNumber },
+  { label: 'Tablet', value: (record) => record.assignedTabletId },
+  { label: 'Section', value: (record) => record.section },
+  { label: 'Device Status', value: (record) => record.deviceStatus },
+];
+
+const DEVICE_SUMMARY_COLUMNS: StudentTableColumn[] = [
+  { label: 'Student Name', value: (record) => record.studentName, selectable: true },
+  { label: 'Roll Number', value: (record) => record.rollNumber },
+  { label: 'Tablet ID', value: (record) => record.assignedTabletId },
+  { label: 'Section', value: (record) => record.section },
+  { label: 'Year', value: (record) => record.class.startsWith('I PU') ? 'I PU' : 'II PU' },
+  { label: 'Device Status', value: (record) => record.deviceStatus },
+];
+
+const SERIAL_SPEC_COLUMNS: StudentTableColumn[] = [
+  { label: 'Student', value: (record) => record.studentName },
+  { label: 'Roll Number', value: (record) => record.rollNumber },
+  { label: 'Tablet', value: (record) => record.assignedTabletId },
+  { label: 'Section', value: (record) => record.section },
+  { label: 'Serial Number', value: getTabletSerialNumber },
+  { label: 'MAC Address', value: getTabletMacAddress },
+  { label: 'More', value: () => 'Click to view more', action: true },
+];
 
 // ── Module metadata map ─────────────────────────────────────────────────────
 const MODULE_META: Record<
@@ -22,7 +120,7 @@ const MODULE_META: Record<
     title: 'All Devices',
     subtitle: 'Complete tablet fleet inventory and live status',
     sectionColor: '#0284C7', sectionLabel: 'Device Administration', sectionNumber: 1,
-    description: 'View and manage all 100 registered student tablets. Filter by status, class, section, or device health.',
+    description: 'Search students by name or tablet ID, filter by PU year, and open a student record for device details.',
     stats: [
       { label: 'Total Tablets', value: '100', color: '#0284C7' },
       { label: 'Online', value: '82', color: '#16A34A' },
@@ -100,7 +198,7 @@ const MODULE_META: Record<
     title: 'Device Health',
     subtitle: 'CPU, RAM, temperature and storage diagnostics',
     sectionColor: '#F59E0B', sectionLabel: 'Device Administration', sectionNumber: 1,
-    description: 'Per-device hardware telemetry including CPU usage, RAM pressure, thermal status, and storage health.',
+    description: 'Review device and student records. Select a student to view hardware, usage, and learning activity details.',
     stats: [
       { label: 'Healthy', value: '76', color: '#16A34A' },
       { label: 'Warning', value: '18', color: '#D97706' },
@@ -330,15 +428,54 @@ const MODULE_META: Record<
 interface AdminModuleViewProps {
   moduleId: ERPModuleId;
   onBack: () => void;
+  sidebarWidth: number;
 }
 
-export default function AdminModuleView({ moduleId, onBack }: AdminModuleViewProps) {
+export default function AdminModuleView({ moduleId, onBack, sidebarWidth }: AdminModuleViewProps) {
   const meta = MODULE_META[moduleId];
 
   // Find section info and icon
   const section = ADMIN_NAV_SECTIONS.find((s) => s.items.some((i) => i.id === moduleId));
   const navItem = section?.items.find((i) => i.id === moduleId);
   const Icon = navItem?.icon;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [classFilter, setClassFilter] = useState<'All' | 'I PU' | 'II PU'>('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStudent, setSelectedStudent] = useState<StudentTabletRecord | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<ActiveExamId>('ipu-neet');
+  const pageSize = 10;
+  const isAllDevicesModule = moduleId === 'adm_all_devices';
+  const isDeviceSummaryModule = isAllDevicesModule || moduleId === 'adm_device_health';
+  const isExamModule = section?.sectionId === 'exam_control';
+  const selectedExam = ACTIVE_EXAMS.find((exam) => exam.id === selectedExamId) ?? ACTIVE_EXAMS[0];
+  const columns = isDeviceSummaryModule
+    ? DEVICE_SUMMARY_COLUMNS
+    : moduleId === 'adm_serial_specs'
+      ? SERIAL_SPEC_COLUMNS
+      : section
+        ? STUDENT_TABLE_COLUMNS[section.sectionId] ?? DEFAULT_STUDENT_TABLE_COLUMNS
+        : DEFAULT_STUDENT_TABLE_COLUMNS;
+  const filteredRecords = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return LIVE_100_STUDENT_TABLETS.filter((record) => {
+      const searchableValues = isAllDevicesModule
+        ? [record.studentName, record.assignedTabletId]
+        : [record.studentName, record.rollNumber, record.assignedTabletId, record.section];
+      const matchesSearch = searchableValues.some((value) => value.toLowerCase().includes(query));
+      const matchesClass = isExamModule || classFilter === 'All' || record.class.startsWith(classFilter);
+      const matchesExam = !isExamModule || record.class.startsWith(selectedExam.classPrefix);
+      return matchesSearch && matchesClass && matchesExam;
+    });
+  }, [searchTerm, classFilter, isAllDevicesModule, isExamModule, selectedExam]);
+  const selectedStudentCount = LIVE_100_STUDENT_TABLETS.filter((record) => {
+    const matchesClass = isExamModule || classFilter === 'All' || record.class.startsWith(classFilter);
+    const matchesExam = !isExamModule || record.class.startsWith(selectedExam.classPrefix);
+    return matchesClass && matchesExam;
+  }).length;
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+  const visibleRecords = filteredRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const firstVisibleRecord = filteredRecords.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastVisibleRecord = Math.min(currentPage * pageSize, filteredRecords.length);
 
   if (!meta) {
     return (
@@ -392,6 +529,45 @@ export default function AdminModuleView({ moduleId, onBack }: AdminModuleViewPro
         <p className="text-sm text-stone-700 leading-relaxed font-medium">{meta.description}</p>
       </div>
 
+      {isExamModule && (
+        <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-black text-stone-900">Select an ongoing examination</h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-black uppercase text-red-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-stone-500">The student list below updates to the selected exam.</p>
+            </div>
+          </div>
+          <label className="flex flex-col gap-1.5 w-full sm:w-72">
+            <span className="text-[10px] font-black uppercase tracking-wider text-stone-500">Active examination / PU cohort</span>
+            <select
+              value={selectedExamId}
+              onChange={(event) => {
+                const exam = ACTIVE_EXAMS.find((option) => option.id === event.target.value);
+                if (exam) {
+                  setSelectedExamId(exam.id);
+                  setCurrentPage(1);
+                }
+              }}
+              aria-label="Select ongoing examination"
+              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-bold text-stone-800 outline-none focus:border-red-400"
+            >
+              {ACTIVE_EXAMS.map((exam) => (
+                <option key={exam.id} value={exam.id}>{exam.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {meta.stats.map((stat, i) => (
@@ -425,21 +601,126 @@ export default function AdminModuleView({ moduleId, onBack }: AdminModuleViewPro
         ))}
       </div>
 
-      {/* ── Placeholder Data Table ── */}
+      {/* ── Student Data Table ── */}
       <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-          <span className="font-black text-sm text-stone-900 uppercase tracking-wide">{meta.title} — Live Data</span>
-          <span className="text-xs text-stone-400 font-medium animate-pulse">● Live</span>
-        </div>
-        <div className="p-5 text-center text-stone-400 text-xs py-12 flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${meta.sectionColor}12` }}>
-            {Icon && <Icon size={28} />}
+        <div className="px-5 py-4 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+              <span className="font-black text-sm text-stone-900 uppercase tracking-wide">
+                {meta.title} — {isExamModule ? `${selectedExam.label} Records` : 'Student Records'}
+              </span>
+              <p className="text-xs text-stone-500 mt-1">
+                {isExamModule
+                  ? `${selectedStudentCount} sample students in ${selectedExam.label}`
+                  : `Sample records for ${classFilter === 'All' ? 'all PU years' : classFilter} (${selectedStudentCount} students)`}
+              </p>
           </div>
-          <p className="font-bold text-stone-500 max-w-sm">
-            Live telemetry for <span style={{ color: meta.sectionColor }}>{meta.title}</span> will appear here when backend is connected. Currently showing 100 simulated records.
-          </p>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {!isExamModule && (
+                <select
+                  value={classFilter}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setClassFilter(value === 'I PU' || value === 'II PU' ? value : 'All');
+                    setCurrentPage(1);
+                  }}
+                  aria-label="Filter by PU year"
+                  className="px-3 py-2 rounded-xl border border-stone-200 text-xs font-bold text-stone-700 outline-none focus:border-stone-400"
+                >
+                  <option value="All">All PU Years</option>
+                  <option value="I PU">I PU</option>
+                  <option value="II PU">II PU</option>
+                </select>
+              )}
+              <label className="relative w-full sm:w-72">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder={isAllDevicesModule ? 'Search name or Tablet ID...' : 'Search student name, roll number, or tablet...'}
+                  aria-label={isAllDevicesModule ? 'Search by student name or tablet ID' : 'Search students by name, roll number, tablet ID, or section'}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-200 text-xs outline-none focus:border-stone-400"
+                />
+              </label>
+            </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[850px] text-left">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-100">
+                {columns.map((column) => (
+                  <th key={column.label} className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-stone-500 whitespace-nowrap">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {visibleRecords.map((record) => (
+                <tr key={record.id} className="hover:bg-stone-50/80 transition-colors">
+                  {columns.map((column) => (
+                    <td key={column.label} className="px-4 py-3 text-xs text-stone-700 whitespace-nowrap">
+                      {column.selectable || column.action ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudent(record)}
+                          className="font-bold text-sky-700 hover:text-sky-900 hover:underline"
+                        >
+                          {column.value(record)}
+                        </button>
+                      ) : column.value(record)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {visibleRecords.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-stone-400">
+                    No student records match “{searchTerm}”.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-5 py-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span className="text-xs text-stone-500">
+            Showing {firstVisibleRecord}–{lastVisibleRecord} of {filteredRecords.length} students
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-bold text-stone-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50"
+            >
+              <ChevronLeft size={14} className="inline -mt-0.5 mr-1" />
+              Previous
+            </button>
+            <span className="text-xs font-bold text-stone-500">Page {currentPage} of {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-bold text-stone-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50"
+            >
+              Next
+              <ChevronRight size={14} className="inline -mt-0.5 ml-1" />
+            </button>
+          </div>
         </div>
       </div>
+      {selectedStudent && (
+        <DeviceHealthDetailModal
+          key={selectedStudent.id}
+          device={selectedStudent}
+          onClose={() => setSelectedStudent(null)}
+          sidebarWidth={sidebarWidth}
+        />
+      )}
     </div>
   );
 }

@@ -19,11 +19,9 @@ import {
   IconVNavSettings,
   // Admin section icons
   IconAdmAllDevices,
-  IconAdmBatteryHealth,
   IconAdmStudentMapping,
   IconAdmDeviceInventory,
   IconAdmSerialSpecs,
-  IconAdmConnectivity,
   IconAdmDeviceHealth,
   IconAdmLiveMonitoring,
   IconAdmTimeManagement,
@@ -131,11 +129,9 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionIcon: IconAdmAllDevices,
     items: [
       { id: 'adm_all_devices',      label: 'All Devices',       icon: IconAdmAllDevices,      colorAccent: '#0284C7' },
-      { id: 'adm_battery_health',   label: 'Battery Health',    icon: IconAdmBatteryHealth,   colorAccent: '#16A34A' },
       { id: 'adm_student_mapping',  label: 'Student Mapping',   icon: IconAdmStudentMapping,  colorAccent: '#7C3AED' },
       { id: 'adm_device_inventory', label: 'Device Inventory',  icon: IconAdmDeviceInventory, colorAccent: '#EA580C' },
       { id: 'adm_serial_specs',     label: 'Serial & Specs',    icon: IconAdmSerialSpecs,     colorAccent: '#64748B' },
-      { id: 'adm_connectivity',     label: 'Connectivity',      icon: IconAdmConnectivity,    colorAccent: '#06B6D4' },
       { id: 'adm_device_health',    label: 'Device Health',     icon: IconAdmDeviceHealth,    colorAccent: '#F59E0B' },
     ],
   },

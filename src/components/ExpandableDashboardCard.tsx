@@ -46,18 +46,18 @@ export default function ExpandableDashboardCard({
         onMouseLeave={onHoverEnd}
         onClick={onToggleTap}
         animate={{
-          scale: isExpanded ? 1.02 : 1,
-          y: isExpanded ? -4 : 0,
+          scale: isExpanded ? [1, 1.018, 1] : 1,
+          y: isExpanded ? [0, -4, 0] : 0,
           borderColor: isExpanded ? '#E5BD55' : 'rgba(229, 231, 235, 0.9)',
           boxShadow: isExpanded
             ? '0 25px 45px -10px rgba(101, 0, 0, 0.2), 0 10px 25px -5px rgba(229, 189, 85, 0.28)'
             : '0 2px 10px -2px rgba(0, 0, 0, 0.05)',
         }}
         transition={{
-          type: 'spring',
-          stiffness: 420,
-          damping: 26,
-          mass: 0.7,
+          scale: { duration: 0.32, times: [0, 0.25, 1], ease: 'easeOut' },
+          y: { duration: 0.32, times: [0, 0.25, 1], ease: 'easeOut' },
+          borderColor: { duration: 0.2 },
+          boxShadow: { duration: 0.2 },
         }}
         className={`bg-white rounded-3xl p-5 md:p-6 border cursor-pointer select-none overflow-hidden flex flex-col justify-between ${
           isExpanded
@@ -87,7 +87,7 @@ export default function ExpandableDashboardCard({
                 isExpanded
                   ? {
                       rotate: [0, -5, 5, 0],
-                      scale: 1.12,
+                      scale: [1, 1.108, 1],
                       backgroundColor: '#FFE59A',
                       color: '#650000',
                     }

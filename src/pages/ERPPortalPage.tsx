@@ -48,7 +48,7 @@ import {
 import { usePortal } from '../context/PortalContext';
 
 const ADMIN_SECTION_DESCRIPTIONS: Record<string, string> = {
-  device_admin: 'All devices, battery health, student mapping, inventory, connectivity and diagnostics.',
+  device_admin: 'Manage student tablets, device inventory, serial specifications, and student device health.',
   exam_control: 'Monitor live exams, manage time, track submissions and review incidents.',
   student_activity: 'Application usage analytics, managed browser logs and tab activity monitoring.',
   security_remote: 'Remotely lock tablets, deploy apps, push OS updates and review audit logs.',
@@ -228,8 +228,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       badgeBg: '#FFE59A',
       badgeColor: '#650000',
       previews: [
-        { label: 'Unread Circulars', value: '3 notices pending review', highlight: true },
-        { label: 'Latest from HOD', value: 'Unit 4 Study Notes Released' },
         { label: 'Principal Notice', value: 'IA-2 Exam Schedule Commencing Nov 18' },
         { label: 'Last Updated', value: '2 hours ago' },
       ],
@@ -247,8 +245,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: 'Live Assessment', value: 'JEE Mock Test Series 03 [DEMO]', highlight: true },
         { label: 'Recent Score', value: '212 / 300 Marks (70.7%)' },
-        { label: 'Next Scheduled', value: 'Nov 18, 2026 (Internal IA-2)' },
-        { label: 'Cohort Rank', value: '#16 of 100 students' },
       ],
       actionLabel: 'Launch Examination Center',
       onAction: () => setActiveModule('tests'),
@@ -264,8 +260,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: 'Latest Upload', value: 'Data Structures Unit 4: Trees', highlight: true },
         { label: 'Uploaded by', value: 'Dr. Priya Nayak (Assoc. Prof)' },
-        { label: 'Available Subjects', value: 'Physics, Chem, Math, DS, OS, TOC' },
-        { label: 'Format', value: 'Verified Official PDF with Letterhead' },
       ],
       actionLabel: 'Browse & Download Notes',
       onAction: () => setActiveModule('board_marks'),
@@ -279,8 +273,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       badgeBg: '#FFFFFF',
       badgeColor: '#343434',
       previews: [
-        { label: 'Featured Series', value: 'JEE Adv Physics Full Course (42 hrs)', highlight: true },
-        { label: 'Resource Types', value: 'Video Lectures, PPTs, Worksheets' },
         { label: 'Exam Tracks', value: 'JEE Main, KCET, NEET, VTU' },
         { label: 'Interactive Player', value: 'Available with full resolution' },
       ],
@@ -298,8 +290,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: 'Latest Exam', value: 'JEE Mock Test 02: 212 / 300', highlight: true },
         { label: 'Accuracy', value: '58 Correct • 14 Incorrect • 18 Left' },
-        { label: 'Subject Means', value: 'Math (82%), Physics (74%), Chem (68%)' },
-        { label: 'Detailed Review', value: 'All 90 MCQs with green/red answer keys' },
       ],
       actionLabel: 'View Detailed Diagnostic Scorecard',
       onAction: () => setActiveModule('reports'),
@@ -315,8 +305,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: "Today's Schedule", value: '4 Lectures + 3-Hour Lab Slot', highlight: true },
         { label: 'Current Session', value: 'Period 2: Algorithms in Room 301' },
-        { label: 'Afternoon Slot', value: 'Python Lab (Lab 2) at 02:00 PM' },
-        { label: 'Upcoming Event', value: 'Annual Day Celebration (Nov 20)' },
       ],
       actionLabel: 'Open Weekly Timetable',
       onAction: () => setActiveModule('timetable'),
@@ -332,8 +320,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: 'Active Reference', value: 'SIR-MV-2026-0062 (Under Review)', highlight: true },
         { label: 'Category', value: 'Classroom Infrastructure (Room 204)' },
-        { label: 'Closed Cases', value: '1 Resolved (Electronics Lab)' },
-        { label: 'Service Level', value: 'Reviewed within 48 business hours' },
       ],
       actionLabel: 'Lodge or Track Grievance',
       onAction: () => setActiveModule('reported_issues'),
@@ -349,8 +335,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       previews: [
         { label: 'Cohort Rate', value: '238 Attended of 276 Conducted', highlight: true },
         { label: 'Statutory Status', value: 'Above 75% VTU Minimum (Eligible)' },
-        { label: 'At-Risk Subjects', value: 'Theory of Computation (73.6%)' },
-        { label: 'Monthly Register', value: 'Complete daily log for Oct & Nov' },
       ],
       actionLabel: 'Check Attendance Log',
       onAction: () => setActiveModule('attendance'),
@@ -383,7 +367,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   ];
 
   return (
-    <div className="min-h-screen bg-[#F3F3F3] flex flex-col font-sans text-stone-900 select-none">
+    <div className="h-screen overflow-hidden bg-[#F3F3F3] flex flex-col font-sans text-stone-900 select-none">
       {/* 2. SIGNATURE ACADEMIC LOADER (Pencil and Ruler orbiting in opposite directions) */}
       <AnimatePresence>
         {showLoader && (
@@ -395,10 +379,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       </AnimatePresence>
 
       {/* Top Header with Role Switcher */}
-      <ERPHeader currentRole={currentRole} onRoleChange={handleRoleChange} />
+      <div className="shrink-0">
+        <ERPHeader currentRole={currentRole} onRoleChange={handleRoleChange} />
+      </div>
 
       {/* Main Layout: Sidebar + Dynamic Animated Content */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left ERP Sidebar */}
         <ERPSidebar
           activeModule={activeModule}
@@ -415,7 +401,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           activeAdminSectionId={activeAdminSectionId}
         />
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
           <div className="flex h-12 shrink-0 items-center px-6 md:px-8">
             <button
               type="button"
@@ -429,7 +415,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           </div>
 
           {/* Right Content Area with Smooth Horizontal Slide Transitions */}
-          <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+          <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
             <AnimatePresence mode="wait">
               <PageTransition pageKey={`${currentRole}_${activeModule}_${activeAdminSectionId ?? ''}`}>
               {/* ─────────────────────────────────────────────────────────────
@@ -1102,63 +1088,87 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {MOCK_EXAM_RESULTS.map((exam) => (
-                            <div
-                              key={exam.id}
-                              onClick={() => setReviewExamModal(exam)}
-                              className="apple-card p-6 flex flex-col justify-between cursor-pointer group"
-                            >
-                              <div>
-                                <div className="flex items-center justify-between mb-3">
-                                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase bg-[#FFE59A] text-[#500000] border border-[#E5BD55]/40">
-                                    {exam.category}
-                                  </span>
-                                  <span className="text-xs text-stone-400 font-medium">{exam.date}</span>
-                                </div>
+                          {MOCK_EXAM_RESULTS.map((exam) => {
+                            const percentage = Math.min(100, Math.max(0, exam.percentage));
 
-                                <h4 className="font-extrabold text-base text-stone-900 group-hover:text-[#A60000] transition-colors leading-snug">
-                                  {exam.examName}
-                                </h4>
-
-                                <div className="mt-4 p-3.5 bg-stone-50 rounded-2xl border border-stone-100 flex items-center justify-between text-xs">
-                                  <div>
-                                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Marks Obtained</span>
-                                    <strong className="text-base font-black text-stone-900">
-                                      {exam.marksObtained} <span className="text-xs font-normal text-stone-400">/ {exam.totalMarks}</span>
-                                    </strong>
-                                  </div>
-
-                                  <div className="text-center">
-                                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Percentage</span>
-                                    <strong className="text-base font-black text-[#A60000]">
-                                      {exam.percentage}%
-                                    </strong>
-                                  </div>
-
-                                  <div className="text-right">
-                                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Cohort Rank</span>
-                                    <strong className="text-base font-black text-green-700">
-                                      #{exam.cohortRank} <span className="text-xs font-normal text-stone-400">/ {exam.totalCohortStudents}</span>
-                                    </strong>
-                                  </div>
-                                </div>
-
-                                {/* Subject mini pills */}
-                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                  {exam.subjectScores.map((sub, sIdx) => (
-                                    <span key={sIdx} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">
-                                      {sub.subject}: {sub.obtained}/{sub.max}
+                            return (
+                              <div
+                                key={exam.id}
+                                onClick={() => setReviewExamModal(exam)}
+                                className="apple-card p-6 flex flex-col justify-between cursor-pointer group"
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase bg-[#FFE59A] text-[#500000] border border-[#E5BD55]/40">
+                                      {exam.category}
                                     </span>
-                                  ))}
+                                    <span className="text-xs text-stone-400 font-medium">{exam.date}</span>
+                                  </div>
+
+                                  <h4 className="font-extrabold text-base text-stone-900 group-hover:text-[#A60000] transition-colors leading-snug">
+                                    {exam.examName}
+                                  </h4>
+
+                                  <div className="mt-4 p-3.5 bg-stone-50 rounded-2xl border border-stone-100 flex items-center justify-between text-xs">
+                                    <div>
+                                      <span className="text-[10px] uppercase font-bold text-stone-400 block">Marks Obtained</span>
+                                      <strong className="text-base font-black text-stone-900">
+                                        {exam.marksObtained} <span className="text-xs font-normal text-stone-400">/ {exam.totalMarks}</span>
+                                      </strong>
+                                    </div>
+
+                                    <div className="text-center">
+                                      <span className="text-[10px] uppercase font-bold text-stone-400 block">Percentage</span>
+                                      <strong className="text-base font-black text-[#A60000]">
+                                        {exam.percentage}%
+                                      </strong>
+                                    </div>
+
+                                    <div className="text-right">
+                                      <span className="text-[10px] uppercase font-bold text-stone-400 block">Cohort Rank</span>
+                                      <strong className="text-base font-black text-green-700">
+                                        #{exam.cohortRank} <span className="text-xs font-normal text-stone-400">/ {exam.totalCohortStudents}</span>
+                                      </strong>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-3">
+                                    <div className="mb-1 flex items-center justify-between text-[10px] font-bold text-stone-500">
+                                      <span>Exam Performance</span>
+                                      <span>{exam.percentage}%</span>
+                                    </div>
+                                    <div
+                                      className="h-2.5 overflow-hidden rounded-full bg-stone-200"
+                                      role="progressbar"
+                                      aria-label={`${exam.examName} percentage score`}
+                                      aria-valuemin={0}
+                                      aria-valuemax={100}
+                                      aria-valuenow={percentage}
+                                    >
+                                      <div
+                                        className="h-full rounded-full bg-gradient-to-r from-[#650000] to-[#C2410C] transition-all"
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Subject mini pills */}
+                                  <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {exam.subjectScores.map((sub, sIdx) => (
+                                      <span key={sIdx} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">
+                                        {sub.subject}: {sub.obtained}/{sub.max}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#A60000] group-hover:translate-x-1 transition-transform">
+                                  <span>Open Full MCQ Review (Answers & Time Taken)</span>
+                                  <span>→</span>
                                 </div>
                               </div>
-
-                              <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#A60000] group-hover:translate-x-1 transition-transform">
-                                <span>Open Full MCQ Review (Answers & Time Taken)</span>
-                                <span>→</span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     </>
@@ -2700,6 +2710,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 <AdminModuleView
                   moduleId={activeModule}
                   onBack={() => setActiveModule('dashboard')}
+                  sidebarWidth={sidebarExpanded ? 236 : 86}
                 />
               )}
 
@@ -2764,14 +2775,14 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       <StudentDetailModal
         student={selectedStudent}
         onClose={() => setSelectedStudent(null)}
-        sidebarWidth={sidebarExpanded ? 230 : 86}
+        sidebarWidth={sidebarExpanded ? 236 : 86}
       />
 
       {/* Deep Diagnostic Results Review Modal (Right answer ticked, option chosen, exact time taken) */}
       <ExamMCQReviewModal
         exam={reviewExamModal}
         onClose={() => setReviewExamModal(null)}
-        sidebarWidth={sidebarExpanded ? 230 : 86}
+        sidebarWidth={sidebarExpanded ? 236 : 86}
       />
     </div>
   );

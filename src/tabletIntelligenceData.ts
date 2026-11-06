@@ -113,6 +113,17 @@ export interface StudentTabletRecord {
   timeline: ActivityTimelineEvent[];
 }
 
+export function getTabletSerialNumber(record: Pick<StudentTabletRecord, 'usn'>): string {
+  const deviceNumber = Number.parseInt(record.usn, 10);
+  return `SMV-TAB-${String(deviceNumber).padStart(3, '0')}-88X`;
+}
+
+export function getTabletMacAddress(record: Pick<StudentTabletRecord, 'usn'>): string {
+  const deviceNumber = Number.parseInt(record.usn, 10);
+  const macByte = deviceNumber.toString(16).padStart(2, '0').slice(-2).toUpperCase();
+  return `48:E2:44:A1:${macByte}:1C`;
+}
+
 // 100 Sample Names representing the student cohort
 const STUDENT_NAMES: string[] = [
   'Rahul Sharma', 'Aditya Patil', 'Ananya Hegde', 'Bhavana Gowda', 'Chetan Kumar',
@@ -196,7 +207,7 @@ export function generate100StudentTablets(): StudentTabletRecord[] {
         id: `rec-01`,
         usn: '01',
         studentName: 'Rahul Sharma',
-        class: 'II PU Science',
+        class: index < 50 ? 'I PU Science' : 'II PU Science',
         section: 'A',
         rollNumber: '24PUC101',
         assignedTabletId: 'TAB-001',
@@ -253,7 +264,7 @@ export function generate100StudentTablets(): StudentTabletRecord[] {
         id: `rec-02`,
         usn: '02',
         studentName: 'Aditya Patil',
-        class: 'II PU Science',
+        class: index < 50 ? 'I PU Science' : 'II PU Science',
         section: 'A',
         rollNumber: '24PUC102',
         assignedTabletId: 'TAB-002',
@@ -319,7 +330,7 @@ export function generate100StudentTablets(): StudentTabletRecord[] {
         id: `rec-03`,
         usn: '03',
         studentName: 'Ananya Hegde',
-        class: 'II PU Science',
+        class: index < 50 ? 'I PU Science' : 'II PU Science',
         section: 'A',
         rollNumber: '24PUC103',
         assignedTabletId: 'TAB-003',
@@ -513,7 +524,7 @@ export function generate100StudentTablets(): StudentTabletRecord[] {
       id: `rec-${usnStr}`,
       usn: usnStr,
       studentName: name,
-      class: 'II PU Science',
+      class: index < 50 ? 'I PU Science' : 'II PU Science',
       section: index < 50 ? 'A' : 'B',
       rollNumber: `24PUC${101 + index}`,
       assignedTabletId: tabletId,
