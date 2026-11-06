@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 import {
   IconVNavDashboard,
   IconVNavStudents,
@@ -143,7 +144,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionLabel: 'Examination Control',
     sectionNumber: 2,
     sectionColor: '#DC2626',
-    sectionIcon: IconAdmLiveMonitoring,
+    sectionIcon: BookOpen,
     items: [
       { id: 'adm_live_monitoring',  label: 'Live Monitoring',   icon: IconAdmLiveMonitoring,  colorAccent: '#DC2626', badge: 'LIVE' },
       { id: 'adm_time_management',  label: 'Time Management',   icon: IconAdmTimeManagement,  colorAccent: '#D97706' },

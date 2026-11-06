@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconVNavPower, IconVNavDashboard } from './VerticalNavIcons';
-import { Menu, ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import {
   ERPModuleId,
   UserRoleType,
@@ -17,7 +17,8 @@ interface ERPSidebarProps {
   onSelectModule: (moduleId: ERPModuleId) => void;
   currentRole?: UserRoleType;
   isExpanded?: boolean;
-  onToggleExpand?: () => void;
+  activeAdminSectionId?: string | null;
+  onSelectAdminSection: (sectionId: string) => void;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ function FlatNavItem({
   return (
     <div className="relative w-full px-0.5">
       <motion.button
+        aria-current={isActive ? 'page' : undefined}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => onSelectModule(item.id)}
@@ -123,145 +125,58 @@ function FlatNavItem({
 function AdminSectionGroup({
   section,
   activeModule,
+  activeAdminSectionId,
   isExpanded: sidebarExpanded,
-  onSelectModule,
+  onSelectSection,
 }: {
   section: AdminNavSection;
   activeModule: ERPModuleId;
+  activeAdminSectionId: string | null;
   isExpanded: boolean;
-  onSelectModule: (id: ERPModuleId) => void;
+  onSelectSection: (sectionId: string) => void;
 }) {
-  const hasActiveChild = section.items.some((i) => i.id === activeModule);
-  const [open, setOpen] = useState(hasActiveChild || section.sectionNumber === 1);
+  const isActive =
+    activeAdminSectionId === section.sectionId ||
+    section.items.some((i) => i.id === activeModule);
   const SectionIcon = section.sectionIcon;
 
   return (
-    <div className="w-full">
-      {/* ── Section Header Button ── */}
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className={`w-full flex items-center gap-2 transition-all duration-150 rounded-xl ${
-          sidebarExpanded ? 'px-2 py-2' : 'flex-col px-1 py-2 justify-center'
-        } ${hasActiveChild ? 'bg-stone-100' : 'hover:bg-stone-50'}`}
-        title={section.sectionLabel}
-      >
-        {/* Number badge */}
-        <span
-          className="shrink-0 flex items-center justify-center rounded-lg font-black text-white"
-          style={{
-            backgroundColor: section.sectionColor,
-            width: sidebarExpanded ? 22 : 28,
-            height: sidebarExpanded ? 22 : 28,
-            fontSize: sidebarExpanded ? 10 : 12,
-          }}
-        >
-          {section.sectionNumber}
-        </span>
-
-        {sidebarExpanded && (
-          <>
-            <span
-              className="flex-1 text-left text-[11px] font-black uppercase tracking-wider truncate"
-              style={{ color: section.sectionColor }}
-            >
-              {section.sectionLabel}
-            </span>
-            <ChevronDown
-              size={13}
-              className="shrink-0 transition-transform duration-200"
-              style={{
-                color: section.sectionColor,
-                transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}
-            />
-          </>
-        )}
-
-        {!sidebarExpanded && (
-          <span className="text-[8px] font-black uppercase tracking-tight leading-tight text-center" style={{ color: section.sectionColor, maxWidth: 62 }}>
-            {section.sectionLabel.split(' ')[0]}
-          </span>
-        )}
-      </button>
-
-      {/* ── Collapsible Items ── */}
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
-            className="overflow-hidden"
+    <button
+      onClick={() => onSelectSection(section.sectionId)}
+      aria-current={isActive ? 'page' : undefined}
+      className={`relative w-full transition-all duration-150 rounded-xl ${
+        sidebarExpanded
+          ? 'px-2 py-2 flex items-center gap-2 text-left'
+          : 'flex-col px-1 py-2 flex items-center justify-center'
+      } ${
+        isActive
+          ? 'bg-[#E8F0FE] text-[#1A73E8] border border-[#BFDBFE] shadow-xs'
+          : 'hover:bg-stone-50'
+      }`}
+      title={section.sectionLabel}
+    >
+      {isActive && (
+        <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#1A73E8]" />
+      )}
+      <span className="shrink-0" style={{ color: isActive ? '#1A73E8' : section.sectionColor }}>
+        <SectionIcon size={sidebarExpanded ? 20 : 26} />
+      </span>
+      {sidebarExpanded ? (
+        <>
+          <span
+            className="flex-1 text-left text-[11px] font-black uppercase tracking-wider truncate"
+            style={{ color: isActive ? '#1A73E8' : section.sectionColor }}
           >
-            <div className={`space-y-0.5 ${sidebarExpanded ? 'pl-2' : 'pl-0'}`}>
-              {section.items.map((item) => {
-                const isActive = activeModule === item.id;
-                const Icon = item.icon;
-
-                return (
-                  <div key={item.id} className="relative w-full px-0.5">
-                    <motion.button
-                      onClick={() => onSelectModule(item.id)}
-                      whileHover={{ scale: sidebarExpanded ? 1.01 : 1.04, x: sidebarExpanded ? 2 : 0 }}
-                      whileTap={{ scale: 0.96 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 26 }}
-                      className={`relative transition-all duration-150 cursor-pointer ${
-                        sidebarExpanded
-                          ? 'w-full py-2 px-2.5 rounded-xl flex flex-row items-center gap-2.5 text-left'
-                          : 'w-[64px] mx-auto py-1.5 px-1 rounded-xl flex flex-col items-center justify-center text-center'
-                      } ${
-                        isActive
-                          ? 'shadow-xs border'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
-                      }`}
-                      style={
-                        isActive
-                          ? {
-                              backgroundColor: `${section.sectionColor}18`,
-                              borderColor: `${section.sectionColor}50`,
-                              color: section.sectionColor,
-                            }
-                          : {}
-                      }
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeAdminIndicator"
-                          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full"
-                          style={{ backgroundColor: section.sectionColor }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        />
-                      )}
-
-                      <div className={`flex items-center justify-center shrink-0 ${sidebarExpanded ? 'w-5 h-5' : 'w-7 h-7 mb-0.5'}`}>
-                        <Icon size={sidebarExpanded ? 17 : 24} />
-                      </div>
-
-                      <span className={`leading-tight block ${
-                        sidebarExpanded
-                          ? 'text-[12px] font-bold flex-1 truncate'
-                          : 'text-[8.5px] font-bold tracking-tight text-center truncate max-w-[58px]'
-                      } ${isActive ? 'font-black' : ''}`}>
-                        {item.label}
-                      </span>
-
-                      {item.badge && (
-                        <span className={`font-black uppercase text-white text-[9px] px-1.5 rounded-full ${
-                          sidebarExpanded ? 'ml-auto' : 'absolute top-0 right-1'
-                        } ${item.badge === 'LIVE' ? 'animate-pulse bg-[#EF4444]' : 'bg-[#EF4444]'}`}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </motion.button>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            {section.sectionLabel}
+          </span>
+          <ChevronRight size={13} className="shrink-0" style={{ color: isActive ? '#1A73E8' : section.sectionColor }} />
+        </>
+      ) : (
+        <span className="text-[8px] font-black uppercase tracking-tight leading-tight text-center" style={{ color: isActive ? '#1A73E8' : section.sectionColor, maxWidth: 62 }}>
+          {section.sectionLabel.split(' ')[0]}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -273,12 +188,10 @@ export default function ERPSidebar({
   onSelectModule,
   currentRole = 'principal',
   isExpanded: externalExpanded,
-  onToggleExpand,
+  activeAdminSectionId = null,
+  onSelectAdminSection,
 }: ERPSidebarProps) {
-  const [internalExpanded, setInternalExpanded] = useState(false);
-
-  const isExpanded = externalExpanded !== undefined ? externalExpanded : internalExpanded;
-  const handleToggleExpand = onToggleExpand || (() => setInternalExpanded((prev) => !prev));
+  const isExpanded = externalExpanded ?? false;
 
   const isAdmin = currentRole === 'admin';
   const isStudent = currentRole === 'student';
@@ -297,7 +210,7 @@ export default function ERPSidebar({
       {/* ── TOP HEADER ───────────────────────────────────────────── */}
       <div className="pt-1 pb-3 px-2 flex flex-col items-center border-b border-stone-100 w-full transition-all">
         {isExpanded ? (
-          <div className="w-full flex items-center justify-between px-1">
+          <div className="w-full flex items-center px-1">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -313,27 +226,9 @@ export default function ERPSidebar({
                 <span className="text-[9px] font-black text-[#A60000] uppercase tracking-wider block">Campus ERP</span>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.1, backgroundColor: '#FFE59A', color: '#650000' }}
-              whileTap={{ scale: 0.92 }}
-              onClick={handleToggleExpand}
-              className="p-1.5 rounded-xl text-stone-700 bg-stone-100 hover:bg-[#FFE59A] transition apple-button shrink-0 border border-stone-200 shadow-2xs"
-              title="Collapse Sidebar"
-            >
-              <Menu size={18} className="stroke-[2.5]" />
-            </motion.button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 w-full">
-            <motion.button
-              whileHover={{ scale: 1.1, backgroundColor: '#FFE59A', color: '#650000' }}
-              whileTap={{ scale: 0.92 }}
-              onClick={handleToggleExpand}
-              className="w-10 h-9 rounded-xl flex items-center justify-center text-stone-700 bg-stone-50 hover:bg-[#FFE59A] hover:text-[#650000] border border-stone-200 transition apple-button shadow-2xs"
-              title="Expand Sidebar"
-            >
-              <Menu size={19} className="stroke-[2.5]" />
-            </motion.button>
+          <div className="flex w-full justify-center">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -355,7 +250,7 @@ export default function ERPSidebar({
             {/* Dashboard shortcut */}
             <FlatNavItem
               item={{ id: 'dashboard', label: 'Dashboard', icon: IconVNavDashboard }}
-              isActive={activeModule === 'dashboard'}
+              isActive={activeModule === 'dashboard' && !activeAdminSectionId}
               isExpanded={isExpanded}
               onSelectModule={onSelectModule}
             />
@@ -369,8 +264,9 @@ export default function ERPSidebar({
                 key={section.sectionId}
                 section={section}
                 activeModule={activeModule}
+                activeAdminSectionId={activeAdminSectionId}
                 isExpanded={isExpanded}
-                onSelectModule={onSelectModule}
+                onSelectSection={onSelectAdminSection}
               />
             ))}
           </div>

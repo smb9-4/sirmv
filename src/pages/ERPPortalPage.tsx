@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import ERPSidebar from '../components/ERPSidebar';
-import { ERPModuleId, SIDEBAR_MENU_ITEMS } from '../components/erpNavConfig';
+import { ADMIN_NAV_SECTIONS, ERPModuleId, SIDEBAR_MENU_ITEMS } from '../components/erpNavConfig';
 import ERPHeader, { UserRoleType, ROLE_PROFILES } from '../components/ERPHeader';
 import StudentDetailModal from '../components/StudentDetailModal';
 import ExamMCQReviewModal from '../components/ExamMCQReviewModal';
@@ -43,9 +43,58 @@ import {
   Search, Filter, Download, ArrowLeft, CheckCircle2, User, Phone,
   Mail, Calendar, Clock, Award, ShieldAlert, Sparkles, BookOpen,
   Bell, ClipboardList, FolderOpen, ChartNoAxesCombined, CalendarDays,
-  MessageSquare, CalendarCheck, Check, Send, RotateCcw, Play, Eye
+  MessageSquare, CalendarCheck, Check, Send, RotateCcw, Play, Eye, ArrowRight, Menu
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
+
+const ADMIN_SECTION_DESCRIPTIONS: Record<string, string> = {
+  device_admin: 'All devices, battery health, student mapping, inventory, connectivity and diagnostics.',
+  exam_control: 'Monitor live exams, manage time, track submissions and review incidents.',
+  student_activity: 'Application usage analytics, managed browser logs and tab activity monitoring.',
+  security_remote: 'Remotely lock tablets, deploy apps, push OS updates and review audit logs.',
+  reports_intelligence: 'Institution-wide reports, student history, maintenance and system configuration.',
+};
+
+const ADMIN_ITEM_BADGES: Partial<Record<ERPModuleId, string>> = {
+  adm_all_devices: '100',
+  adm_battery_health: '7 ⚠',
+  adm_connectivity: '6 ✕',
+  adm_submissions: '14',
+  adm_exam_incidents: '9',
+  adm_app_usage: '3 ⚠',
+  adm_browser_activity: '23 ✕',
+  adm_remote_lock: '1 🔒',
+  adm_os_updates: '9',
+  adm_student_reports: '100',
+  adm_maintenance: '4 ⚠',
+  adm_notifications: '7',
+};
+
+const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
+  adm_all_devices: 'Monitor every registered student tablet.',
+  adm_battery_health: 'Review charge levels and battery status.',
+  adm_student_mapping: 'Match students with assigned tablets.',
+  adm_device_inventory: 'Track tablet assets and warranty.',
+  adm_serial_specs: 'Review device identifiers and hardware details.',
+  adm_connectivity: 'Check network status and signal strength.',
+  adm_device_health: 'Review tablet performance and diagnostics.',
+  adm_live_monitoring: 'Watch active exams as they happen.',
+  adm_time_management: 'Manage exam timers and extensions.',
+  adm_submissions: 'Track submitted and pending responses.',
+  adm_exam_incidents: 'Review technical issues during exams.',
+  adm_app_usage: 'Analyze app activity across devices.',
+  adm_browser_activity: 'Review browsing and blocked-site events.',
+  adm_tab_activity: 'Monitor browser tab switching events.',
+  adm_remote_lock: 'Lock compromised tablets remotely.',
+  adm_app_deployment: 'Install approved apps across tablets.',
+  adm_os_updates: 'Manage operating system updates.',
+  adm_audit_logs: 'Review administrative actions and history.',
+  adm_overall_reports: 'View institution-wide system summaries.',
+  adm_student_reports: 'Review individual student records.',
+  adm_maintenance: 'Track service and repair requests.',
+  adm_notifications: 'Manage alerts and system messages.',
+  adm_configuration: 'Adjust device and platform settings.',
+};
 
 interface ERPPortalPageProps {
   initialRole?: UserRoleType;
@@ -123,11 +172,13 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
   // Collapsible Sidebar State (3 Horizontal Lines)
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
+  const [activeAdminSectionId, setActiveAdminSectionId] = useState<string | null>(null);
 
   // Portal Context
   const { announcements, exams, results, notes, studyMaterials, complaints, subjectAttendance } = usePortal();
 
   const activeProfile = ROLE_PROFILES[currentRole === 'student' ? 'student' : 'admin'];
+  const activeAdminSection = ADMIN_NAV_SECTIONS.find((section) => section.sectionId === activeAdminSectionId);
 
   // Trigger brief academic loader when switching roles
   const handleRoleChange = (newRole: UserRoleType) => {
@@ -135,6 +186,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     setCurrentRole(newRole);
     setActiveModule('dashboard');
     setExpandedCardId(null);
+    setActiveAdminSectionId(null);
   };
 
   // 24 Workspace Modules definition for Principal/Admin/Teacher view
@@ -342,25 +394,44 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         )}
       </AnimatePresence>
 
-      {/* Top Header with Role Switcher Dropdown */}
+      {/* Top Header with Role Switcher */}
       <ERPHeader currentRole={currentRole} onRoleChange={handleRoleChange} />
 
       {/* Main Layout: Sidebar + Dynamic Animated Content */}
       <div className="flex flex-1">
-        {/* Left ERP Sidebar with 3 Horizontal Lines Expand/Minimize Toggle */}
+        {/* Left ERP Sidebar */}
         <ERPSidebar
           activeModule={activeModule}
-          onSelectModule={setActiveModule}
+          onSelectModule={(moduleId) => {
+            setActiveModule(moduleId);
+            if (moduleId === 'dashboard') setActiveAdminSectionId(null);
+          }}
+          onSelectAdminSection={(sectionId) => {
+            setActiveModule('dashboard');
+            setActiveAdminSectionId(sectionId);
+          }}
           currentRole={currentRole}
           isExpanded={sidebarExpanded}
-          onToggleExpand={() => setSidebarExpanded((prev) => !prev)}
+          activeAdminSectionId={activeAdminSectionId}
         />
 
-        {/* Right Content Area with Smooth Horizontal Slide Transitions */}
-        <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
-          <AnimatePresence mode="wait">
-            <PageTransition pageKey={`${currentRole}_${activeModule}`}>
+        <div className="min-w-0 flex-1">
+          <div className="flex h-12 shrink-0 items-center px-6 md:px-8">
+            <button
+              type="button"
+              onClick={() => setSidebarExpanded((prev) => !prev)}
+              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+              className="-ml-[15px] flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:bg-[#FFE59A] hover:text-[#650000]"
+            >
+              <Menu size={19} className="stroke-[2.5]" />
+            </button>
+          </div>
 
+          {/* Right Content Area with Smooth Horizontal Slide Transitions */}
+          <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+            <AnimatePresence mode="wait">
+              <PageTransition pageKey={`${currentRole}_${activeModule}_${activeAdminSectionId ?? ''}`}>
               {/* ─────────────────────────────────────────────────────────────
                   ROLE = STUDENT VIEW: 8 INTERACTIVE EXPANDABLE CARDS
                   ───────────────────────────────────────────────────────────── */}
@@ -476,118 +547,141 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 </div>
               )}
 
+              {currentRole !== 'student' && activeModule === 'dashboard' && activeAdminSection && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAdminSectionId(null)}
+                      className="flex items-center gap-2 self-start rounded-xl border border-stone-200 px-3 py-2 text-xs font-bold text-stone-600 transition hover:bg-stone-50"
+                    >
+                      <ArrowLeft size={15} />
+                      All Sections
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-xl font-black tracking-tight text-stone-900">{activeAdminSection.sectionLabel}</h1>
+                      <p className="mt-1 text-xs leading-relaxed text-stone-500">
+                        {ADMIN_SECTION_DESCRIPTIONS[activeAdminSection.sectionId]}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1.5 text-xs font-bold text-stone-600">
+                      {activeAdminSection.items.length} modules
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {activeAdminSection.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      const badge = ADMIN_ITEM_BADGES[item.id] ?? item.badge;
+
+                      return (
+                        <motion.button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveModule(item.id);
+                            setActiveAdminSectionId(null);
+                          }}
+                          whileHover={{ y: -3, boxShadow: '0 16px 30px -20px rgba(15,23,42,0.35)' }}
+                          transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                          className="group flex min-h-36 flex-col rounded-3xl border border-stone-200 bg-white p-5 text-left shadow-sm transition-colors hover:border-stone-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
+                        >
+                          <span className="mb-3.5 flex min-h-11 w-full items-start justify-between">
+                            <span
+                              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF0F0] text-[#650000] shadow-xs"
+                              style={{ color: item.colorAccent ?? activeAdminSection.sectionColor }}
+                            >
+                              <ItemIcon size={33} />
+                            </span>
+                            {badge && (
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold text-white ${badge === 'LIVE' ? 'animate-pulse bg-red-500' : ''}`}
+                                style={badge === 'LIVE' ? undefined : { backgroundColor: activeAdminSection.sectionColor }}
+                              >
+                                {badge}
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-4 font-black text-sm text-stone-800">{item.label}</span>
+                          <span className="mt-1 text-[11px] leading-relaxed text-stone-500">
+                            {ADMIN_ITEM_DESCRIPTIONS[item.id]}
+                          </span>
+                          <span className="mt-auto flex w-full items-center justify-between pt-4 text-xs font-black text-[#A60000]">
+                            Open module
+                            <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* ─────────────────────────────────────────────────────────────
                   ROLE = PRINCIPAL / ADMIN / TEACHER DASHBOARD VIEW (DEFAULT)
                   ───────────────────────────────────────────────────────────── */}
-              {currentRole !== 'student' && activeModule === 'dashboard' && (
+              {currentRole !== 'student' && activeModule === 'dashboard' && !activeAdminSection && (
                 <div className="space-y-6">
                   {/* ── Top Welcome Bar ── */}
-                  <div className="bg-white rounded-3xl p-6 md:p-7 shadow-sm border border-stone-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div
+                    className="relative overflow-hidden rounded-3xl p-6 md:p-7 text-white shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                    style={{ background: 'linear-gradient(135deg, #500000 0%, #650000 65%, #A60000 100%)' }}
+                  >
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#A60000] text-white tracking-wider">{activeProfile.roleBadge}</span>
-                        <span className="text-xs text-stone-400 font-medium">• Manchester Technologies – Shivamogga</span>
+                        <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#FFE59A] text-[#500000] tracking-wider">{activeProfile.roleBadge}</span>
+                        <span className="text-xs text-white/75 font-medium">• Manchester Technologies – Shivamogga</span>
                       </div>
-                      <h1 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tight">Admin / Tab Management</h1>
-                      <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">Central control for student tablets, live examinations, activity monitoring, security and reports. Use the sidebar sections to navigate modules.</p>
+                      <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Admin / Tab Management</h1>
+                      <p className="text-xs text-white/80 mt-1 max-w-2xl leading-relaxed">Central control for student tablets, live examinations, activity monitoring, security and reports. Open a section card to view its modules.</p>
                     </div>
-                    <div className="bg-stone-50/80 rounded-2xl p-4 border border-stone-200/60 flex items-center gap-3 shrink-0 shadow-xs">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-white text-base shadow-sm" style={{ backgroundColor: activeProfile.color }}>{activeProfile.initial}</div>
+                    <div className="bg-white/10 rounded-2xl p-4 border border-white/20 backdrop-blur-sm flex items-center gap-3 shrink-0 shadow-xs">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[#500000] text-base shadow-sm bg-[#FFE59A]">{activeProfile.initial}</div>
                       <div>
-                        <h3 className="font-extrabold text-xs text-stone-900 truncate max-w-[170px]">{activeProfile.name}</h3>
-                        <p className="text-[11px] text-stone-400 truncate max-w-[170px]">{activeProfile.email}</p>
+                        <h3 className="font-extrabold text-xs text-white truncate max-w-[170px]">{activeProfile.name}</h3>
+                        <p className="text-[11px] text-white/70 truncate max-w-[170px]">{activeProfile.email}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* ── 5 Section Cards ── */}
-                  {[
-                    {
-                      num: 1, label: 'Device Administration', color: '#0284C7',
-                      desc: 'All devices, battery health, student mapping, inventory, serial numbers, connectivity and device diagnostics.',
-                      items: [
-                        { id: 'adm_all_devices', label: 'All Devices', badge: '100' },
-                        { id: 'adm_battery_health', label: 'Battery Health', badge: '7 ⚠' },
-                        { id: 'adm_student_mapping', label: 'Student Mapping', badge: null },
-                        { id: 'adm_device_inventory', label: 'Device Inventory', badge: null },
-                        { id: 'adm_serial_specs', label: 'Serial & Specs', badge: null },
-                        { id: 'adm_connectivity', label: 'Connectivity', badge: '6 ✕' },
-                        { id: 'adm_device_health', label: 'Device Health', badge: null },
-                      ],
-                    },
-                    {
-                      num: 2, label: 'Examination Control', color: '#DC2626',
-                      desc: 'Monitor live exams, manage remaining time and extensions, track submissions, and log technical incidents.',
-                      items: [
-                        { id: 'adm_live_monitoring', label: 'Live Monitoring', badge: 'LIVE' },
-                        { id: 'adm_time_management', label: 'Time Management', badge: null },
-                        { id: 'adm_submissions', label: 'Submissions', badge: '14' },
-                        { id: 'adm_exam_incidents', label: 'Exam Incidents', badge: '9' },
-                      ],
-                    },
-                    {
-                      num: 3, label: 'Student Activity & Intelligence', color: '#7C3AED',
-                      desc: 'Application usage analytics, managed browser domain logs, and browser tab switching event monitoring.',
-                      items: [
-                        { id: 'adm_app_usage', label: 'App Usage', badge: '3 ⚠' },
-                        { id: 'adm_browser_activity', label: 'Browser Activity', badge: '23 ✕' },
-                        { id: 'adm_tab_activity', label: 'Tab Activity', badge: null },
-                      ],
-                    },
-                    {
-                      num: 4, label: 'Security & Remote Management', color: '#B91C1C',
-                      desc: 'Remotely lock compromised tablets, deploy approved apps, push OS updates, and review audit logs.',
-                      items: [
-                        { id: 'adm_remote_lock', label: 'Remote Lock', badge: '1 🔒' },
-                        { id: 'adm_app_deployment', label: 'App Deployment', badge: null },
-                        { id: 'adm_os_updates', label: 'OS Updates', badge: '9' },
-                        { id: 'adm_audit_logs', label: 'Audit Logs', badge: null },
-                      ],
-                    },
-                    {
-                      num: 5, label: 'Reports & System Intelligence', color: '#065F46',
-                      desc: 'Institution-wide reports, individual student history, maintenance tickets, notifications, and system configuration.',
-                      items: [
-                        { id: 'adm_overall_reports', label: 'Overall Reports', badge: null },
-                        { id: 'adm_student_reports', label: 'Student Reports', badge: '100' },
-                        { id: 'adm_maintenance', label: 'Maintenance', badge: '4 ⚠' },
-                        { id: 'adm_notifications', label: 'Notifications', badge: '7' },
-                        { id: 'adm_configuration', label: 'Configuration', badge: null },
-                      ],
-                    },
-                  ].map((section) => (
-                    <div key={section.num} className="bg-white rounded-3xl border shadow-sm overflow-hidden" style={{ borderColor: `${section.color}30` }}>
-                      {/* Section Header */}
-                      <div className="px-6 py-4 flex items-center gap-4 border-b" style={{ borderColor: `${section.color}20`, background: `linear-gradient(90deg, ${section.color}10 0%, transparent 100%)` }}>
-                        <span className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-sm" style={{ backgroundColor: section.color }}>
-                          {section.num}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <h2 className="font-black text-base text-stone-900 uppercase tracking-wide">{section.label}</h2>
-                          <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{section.desc}</p>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+                    {ADMIN_NAV_SECTIONS.map((section) => {
+                      const SectionIcon = section.sectionIcon;
+                      return (
+                        <motion.button
+                          key={section.sectionId}
+                          type="button"
+                          aria-label={`Open ${section.sectionLabel} page`}
+                          onClick={() => setActiveAdminSectionId(section.sectionId)}
+                          layout
+                          whileHover={{ y: -5, scale: 1.025, boxShadow: '0 20px 36px -20px rgba(15,23,42,0.35)' }}
+                          transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                          className="group flex min-h-[244px] flex-col overflow-hidden rounded-3xl border border-stone-200 border-t-[3px] bg-white p-5 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
+                          style={{ borderTopColor: '#650000' }}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-[#650000]">
+                              <SectionIcon size={27} />
+                            </span>
+                            <span className="rounded-full border border-stone-100 px-3 py-1.5 text-[10px] font-black text-stone-700">
+                              {section.items.length} Modules
+                            </span>
+                          </div>
 
-                      {/* Sub-items Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-0 divide-x divide-stone-100">
-                        {section.items.map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => setActiveModule(item.id as ERPModuleId)}
-                            className="relative flex flex-col items-center justify-center text-center py-5 px-3 hover:bg-stone-50 transition-colors group"
-                          >
-                            {item.badge && (
-                              <span className="absolute top-2 right-2 text-[9px] font-black px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: item.badge === 'LIVE' ? '#EF4444' : section.color }}>
-                                {item.badge}
-                              </span>
-                            )}
-                            <span className="text-[11px] font-black text-stone-700 group-hover:text-stone-950 leading-tight">{item.label}</span>
-                            <span className="text-[9px] font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: section.color }}>Open →</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                          <div className="mt-4">
+                            <h2 className="font-black text-sm uppercase tracking-wide text-stone-900">{section.sectionLabel}</h2>
+                            <p className="mt-1 text-xs leading-relaxed text-stone-500">{ADMIN_SECTION_DESCRIPTIONS[section.sectionId]}</p>
+                          </div>
+
+                          <span className="mt-auto flex w-full items-center justify-between border-t border-stone-100 pt-3 text-xs font-black text-[#A60000]">
+                            <span>Open section</span>
+                            <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -2660,9 +2754,10 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 </div>
               )}
 
-            </PageTransition>
-          </AnimatePresence>
-        </main>
+              </PageTransition>
+            </AnimatePresence>
+          </main>
+        </div>
       </div>
 
       {/* Apple OS Style Student Scorecard Modal (Animates from 0 to Current Marks like 500) */}
