@@ -27,7 +27,7 @@ import {
   IconVNavAttendance, IconVNavComplaints, IconVNavSettings,
 } from '../components/VerticalNavIcons';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, ReferenceLine
 } from 'recharts';
 import { DEMO_ATTENDANCE_RECORDS } from '../data';
@@ -93,7 +93,93 @@ const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
   adm_configuration: 'Adjust device and platform settings.',
 };
 
-type AttendancePeriod = 'daily' | 'weekly' | 'monthly';
+type AttendancePeriod = 'daily' | 'weekly' | 'monthly' | 'overall';
+type ExamArchiveFilter = 'all' | ExamCategory;
+
+const EXAM_ARCHIVE_FILTERS: { value: ExamArchiveFilter; label: string }[] = [
+  { value: 'all', label: 'All Exams' },
+  { value: 'JEE', label: 'JEE' },
+  { value: 'NEET', label: 'NEET' },
+  { value: 'CET', label: 'KCET' },
+  { value: 'PU Board Theory', label: 'Theory' },
+];
+
+interface AttendancePeriodSummary {
+  label: string;
+  conductedClasses: number;
+  attendedClasses: number;
+  missedClasses: number;
+  percentage: number;
+}
+
+function createAttendancePeriodSummary(
+  conductedClasses: number,
+  attendedClasses: number,
+  label: string
+): AttendancePeriodSummary {
+  return {
+    label,
+    conductedClasses,
+    attendedClasses,
+    missedClasses: conductedClasses - attendedClasses,
+    percentage: conductedClasses > 0
+      ? Math.round((attendedClasses / conductedClasses) * 1000) / 10
+      : 0,
+  };
+}
+
+function getAttendancePeriodSummary(
+  period: AttendancePeriod,
+  overallCounts: { conductedClasses: number; attendedClasses: number }
+): AttendancePeriodSummary {
+  if (period === 'overall') {
+    return createAttendancePeriodSummary(
+      overallCounts.conductedClasses,
+      overallCounts.attendedClasses,
+      'All recorded classes'
+    );
+  }
+
+  const classRecords = DEMO_ATTENDANCE_RECORDS
+    .filter((record) => record.status === 'present' || record.status === 'absent')
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const latestRecord = classRecords[classRecords.length - 1];
+
+  if (!latestRecord) {
+    return createAttendancePeriodSummary(0, 0, 'No records');
+  }
+
+  let summaryRecord = latestRecord;
+  const [latestYear, latestMonth, latestDay] = latestRecord.date.split('-').map(Number);
+
+  if (period === 'monthly' && latestDay < new Date(latestYear, latestMonth, 0).getDate()) {
+    const previousCompleteMonthRecord = classRecords.slice().reverse().find((record) => {
+      const [recordYear, recordMonth] = record.date.split('-').map(Number);
+      return recordYear < latestYear || (recordYear === latestYear && recordMonth < latestMonth);
+    });
+    if (previousCompleteMonthRecord) summaryRecord = previousCompleteMonthRecord;
+  }
+
+  const [year, month, day] = summaryRecord.date.split('-').map(Number);
+  const latestWeek = Math.ceil(day / 7);
+  const periodRecords = classRecords.filter((record) => {
+    const [recordYear, recordMonth, recordDay] = record.date.split('-').map(Number);
+    if (period === 'daily') return record.date === summaryRecord.date;
+    if (recordYear !== year || recordMonth !== month) return false;
+    return period === 'monthly' || Math.ceil(recordDay / 7) === latestWeek;
+  });
+  const attendedClasses = periodRecords.filter((record) => record.status === 'present').length;
+  const monthLabel = new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'short' });
+  const isCompleteMonthlySummary = period === 'monthly' && summaryRecord !== latestRecord;
+  const label = period === 'daily'
+    ? `${monthLabel} ${day}`
+    : period === 'weekly'
+      ? `${monthLabel} W${latestWeek}`
+      : `${monthLabel} ${year}${isCompleteMonthlySummary ? ' (complete)' : ''}`;
+
+  return createAttendancePeriodSummary(periodRecords.length, attendedClasses, label);
+}
 
 function getSundayExamLabel(year: number, month: number, day: number) {
   const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
@@ -103,7 +189,7 @@ function getSundayExamLabel(year: number, month: number, day: number) {
   return Math.abs(weekOffset) % 2 === 0 ? 'JEE Weekly Exam' : 'NEET Weekly Exam';
 }
 
-function getAttendanceTrendData(period: AttendancePeriod) {
+function getAttendanceTrendData(period: Exclude<AttendancePeriod, 'overall'>) {
   const classRecords = DEMO_ATTENDANCE_RECORDS
     .filter((record) => record.status === 'present' || record.status === 'absent')
     .slice()
@@ -213,6 +299,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
   // Deep Diagnostic Results Review Modal State
   const [reviewExamModal, setReviewExamModal] = useState<PastExamRecord | null>(null);
+  const [examArchiveFilter, setExamArchiveFilter] = useState<ExamArchiveFilter>('all');
 
   // Collapsible Sidebar State (3 Horizontal Lines)
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
@@ -224,13 +311,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
   // Portal Context
   const { announcements, exams, results, notes, studyMaterials, complaints, subjectAttendance } = usePortal();
-  const attendanceTrendData = getAttendanceTrendData(attendancePeriod);
-  const attendedClasses = subjectAttendance.reduce((total, subject) => total + subject.attendedClasses, 0);
-  const conductedClasses = subjectAttendance.reduce((total, subject) => total + subject.totalClasses, 0);
-  const overallAttendance = conductedClasses > 0
-    ? Math.round((attendedClasses / conductedClasses) * 1000) / 10
-    : 0;
-  const isAttendanceSafe = overallAttendance >= 75;
+  const attendanceTrendPeriod = attendancePeriod === 'overall' ? 'weekly' : attendancePeriod;
+  const attendanceTrendData = getAttendanceTrendData(attendanceTrendPeriod);
+  const allTimeAttendedClasses = subjectAttendance.reduce((total, subject) => total + subject.attendedClasses, 0);
+  const allTimeConductedClasses = subjectAttendance.reduce((total, subject) => total + subject.totalClasses, 0);
+  const attendanceSummary = getAttendancePeriodSummary(attendancePeriod, {
+    attendedClasses: allTimeAttendedClasses,
+    conductedClasses: allTimeConductedClasses,
+  });
+  const attendancePeriodLabel = attendancePeriod.charAt(0).toUpperCase() + attendancePeriod.slice(1);
+  const isAttendanceSafe = attendanceSummary.percentage >= 75;
+  const filteredExamResults = MOCK_EXAM_RESULTS.filter(
+    (exam) => examArchiveFilter === 'all' || exam.category === examArchiveFilter
+  );
   const academicCalendarYear = academicCalendarMonth.getFullYear();
   const academicCalendarMonthIndex = academicCalendarMonth.getMonth();
   const academicCalendarDayCount = new Date(academicCalendarYear, academicCalendarMonthIndex + 1, 0).getDate();
@@ -1127,43 +1220,43 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       {/* Top Recent Exam Performance Spotlight Card */}
                       <div className="bg-gradient-to-br from-[#FFFBEB] via-[#FEF3C7]/50 to-[#FDE68A]/30 rounded-3xl p-6 border border-[#FCD34D] shadow-sm relative overflow-hidden">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                          <div className="space-y-2">
+                          <div className="min-w-0 flex-1 space-y-2">
                             <div className="flex items-center gap-2">
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#78350F] text-white">
                                 Latest Evaluated Paper
                               </span>
                               <span className="text-xs font-bold text-[#92400E]">Nov 02, 2026</span>
                             </div>
-                            <h3 className="text-2xl font-black text-[#78350F] tracking-tight">
+                            <h3 className="break-words text-2xl font-black text-[#78350F] tracking-tight">
                               JEE Main All India Mock Assessment 02
                             </h3>
-                            <p className="text-xs text-stone-600 max-w-xl">
+                            <p className="max-w-xl break-words text-xs text-stone-600">
                               Conducted by Senior Faculty & Examination Board. Overall accuracy: <strong>56 Correct • 12 Incorrect • 7 Unattempted</strong>. Time spent: 168 mins.
                             </p>
                           </div>
 
                           {/* Quick metrics grid */}
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
+                          <div className="grid w-full min-w-0 grid-cols-3 gap-2 sm:gap-3 lg:w-[300px] lg:flex-none">
+                            <div className="min-w-0 p-2 sm:p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
                               <span className="text-[10px] uppercase font-bold text-stone-400 block">Total Score</span>
-                              <div className="text-2xl font-black text-[#A60000] mt-0.5">
+                              <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline justify-center gap-x-1 text-[clamp(1rem,1.7vw,1.5rem)] font-black text-[#A60000]">
                                 <AnimatedCounter value={212} duration={1200} />
-                                <span className="text-xs font-normal text-stone-400"> / 300</span>
+                                <span className="whitespace-nowrap text-xs font-normal text-stone-400">/ 300</span>
                               </div>
                               <span className="text-[10px] text-stone-500 block mt-0.5">70.7% Score</span>
                             </div>
 
-                            <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
+                            <div className="min-w-0 p-2 sm:p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
                               <span className="text-[10px] uppercase font-bold text-stone-400 block">Cohort Rank</span>
-                              <div className="text-2xl font-black text-green-700 mt-0.5">
+                              <div className="mt-0.5 break-words text-[clamp(1rem,1.7vw,1.5rem)] font-black text-green-700">
                                 #<AnimatedCounter value={16} duration={900} />
                               </div>
                               <span className="text-[10px] text-stone-500 block mt-0.5">of 100 students</span>
                             </div>
 
-                            <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
+                            <div className="min-w-0 p-2 sm:p-3 bg-white/80 backdrop-blur-sm rounded-2xl border border-[#FCD34D] text-center">
                               <span className="text-[10px] uppercase font-bold text-stone-400 block">Percentile</span>
-                              <div className="text-2xl font-black text-blue-700 mt-0.5">
+                              <div className="mt-0.5 break-words text-[clamp(1rem,1.7vw,1.5rem)] font-black text-blue-700">
                                 <AnimatedCounter value={84.2} decimals={1} duration={1100} suffix="%" />
                               </div>
                               <span className="text-[10px] text-stone-500 block mt-0.5">Top 16% in PUC</span>
@@ -1173,28 +1266,28 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
                         {/* Subject marks breakdown strip */}
                         <div className="mt-5 pt-4 border-t border-[#FCD34D]/70 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                          <div className="p-3 bg-white/70 rounded-xl flex items-center justify-between">
-                            <div>
+                          <div className="min-w-0 p-3 bg-white/70 rounded-xl flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
                               <strong className="block text-stone-900">Physics</strong>
                               <span className="text-stone-400 text-[11px]">Electrostatics, Currents, Optics</span>
                             </div>
-                            <strong className="text-sm font-black text-stone-800">74 / 100</strong>
+                            <strong className="shrink-0 whitespace-nowrap text-sm font-black text-stone-800">74 / 100</strong>
                           </div>
 
-                          <div className="p-3 bg-white/70 rounded-xl flex items-center justify-between">
-                            <div>
+                          <div className="min-w-0 p-3 bg-white/70 rounded-xl flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
                               <strong className="block text-stone-900">Chemistry</strong>
                               <span className="text-stone-400 text-[11px]">Kinetics, Coordination, Organic</span>
                             </div>
-                            <strong className="text-sm font-black text-stone-800">68 / 100</strong>
+                            <strong className="shrink-0 whitespace-nowrap text-sm font-black text-stone-800">68 / 100</strong>
                           </div>
 
-                          <div className="p-3 bg-white/70 rounded-xl flex items-center justify-between">
-                            <div>
+                          <div className="min-w-0 p-3 bg-white/70 rounded-xl flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
                               <strong className="block text-stone-900">Mathematics</strong>
                               <span className="text-stone-400 text-[11px]">Calculus, Matrices, Vectors</span>
                             </div>
-                            <strong className="text-sm font-black text-stone-800">70 / 100</strong>
+                            <strong className="shrink-0 whitespace-nowrap text-sm font-black text-stone-800">70 / 100</strong>
                           </div>
                         </div>
 
@@ -1202,7 +1295,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         <div className="mt-4 flex justify-end">
                           <button
                             onClick={() => setReviewExamModal(MOCK_EXAM_RESULTS[0])}
-                            className="px-5 py-2.5 rounded-2xl font-bold text-xs text-white bg-[#A60000] hover:bg-[#650000] transition apple-button-primary shadow-sm flex items-center gap-1.5"
+                            className="max-w-full flex-wrap justify-center px-5 py-2.5 rounded-2xl font-bold text-xs text-white bg-[#A60000] hover:bg-[#650000] transition apple-button-primary shadow-sm flex items-center gap-1.5 text-center"
                           >
                             <CheckCircle2 size={14} /> Open Detailed MCQ Review (Right Answer Ticked & Option Chosen)
                           </button>
@@ -1213,7 +1306,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                           SCROLL DOWN: ALL PAST EXAMINATIONS MARKS & PERCENTAGE ARCHIVE
                           ───────────────────────────────────────────────────────────── */}
                       <div className="space-y-4 pt-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <h3 className="text-base font-extrabold text-stone-900">
                               Past Examination Records & Score Archives (Click any paper to review MCQs)
@@ -1222,13 +1315,25 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                               Evaluated diagnostic records across JEE, NEET, KCET and PU Board evaluations
                             </p>
                           </div>
-                          <span className="text-xs font-bold text-stone-400">
-                            {MOCK_EXAM_RESULTS.length} Recorded Exams
-                          </span>
+                          <select
+                            aria-label="Filter past exam records by category"
+                            value={examArchiveFilter}
+                            onChange={(event) => {
+                              const selectedFilter = EXAM_ARCHIVE_FILTERS.find(
+                                (filter) => filter.value === event.target.value
+                              );
+                              if (selectedFilter) setExamArchiveFilter(selectedFilter.value);
+                            }}
+                            className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-stone-700 shadow-sm outline-none transition focus:border-[#A60000] focus:ring-2 focus:ring-[#A60000]/15 sm:w-44"
+                          >
+                            {EXAM_ARCHIVE_FILTERS.map((filter) => (
+                              <option key={filter.value} value={filter.value}>{filter.label}</option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {MOCK_EXAM_RESULTS.map((exam) => {
+                          {filteredExamResults.length > 0 ? filteredExamResults.map((exam) => {
                             const percentage = Math.min(100, Math.max(0, exam.percentage));
 
                             return (
@@ -1240,7 +1345,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                                 <div>
                                   <div className="flex items-center justify-between mb-3">
                                     <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase bg-[#FFE59A] text-[#500000] border border-[#E5BD55]/40">
-                                      {exam.category}
+                                      {exam.category === 'CET'
+                                        ? 'KCET'
+                                        : exam.category === 'PU Board Theory'
+                                          ? 'Theory'
+                                          : exam.category}
                                     </span>
                                     <span className="text-xs text-stone-400 font-medium">{exam.date}</span>
                                   </div>
@@ -1308,7 +1417,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                                 </div>
                               </div>
                             );
-                          })}
+                          }) : (
+                            <div className="md:col-span-2 rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-stone-500">
+                              No exam records found for {EXAM_ARCHIVE_FILTERS.find((filter) => filter.value === examArchiveFilter)?.label ?? 'this category'}.
+                            </div>
+                          )}
                         </div>
                       </div>
                     </>
@@ -1352,7 +1465,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>MY ATTENDANCE</h2>
-                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>Daily, weekly and monthly attendance records</p>
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>Daily, weekly, monthly and overall attendance records</p>
                       </div>
                     </div>
                     <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black ${
@@ -1360,32 +1473,34 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     }`}>
                       {isAttendanceSafe ? <CheckCircle2 size={16} /> : <ShieldAlert size={16} />}
                       <span>{isAttendanceSafe ? 'SAFE' : 'AT RISK'}</span>
-                      <span className="font-bold">{overallAttendance}% · 75% minimum</span>
+                      <span className="font-bold">{attendanceSummary.percentage}% · 75% minimum</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
-                      <span className="text-xs font-bold text-stone-400 uppercase">Overall Attendance</span>
+                      <span className="text-xs font-bold text-stone-400 uppercase">
+                        {attendancePeriod === 'overall' ? 'Overall Attendance' : `${attendancePeriodLabel} Attendance`}
+                      </span>
                       <div className={`text-3xl font-black mt-1 ${isAttendanceSafe ? 'text-green-700' : 'text-red-600'}`}>
-                        {overallAttendance}%
+                        {attendanceSummary.percentage}%
                       </div>
-                      <span className="text-[11px] text-stone-500 mt-0.5 block">75% required</span>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">75% required · {attendanceSummary.label}</span>
                     </div>
                     <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
                       <span className="text-xs font-bold text-stone-400 uppercase">Classes Conducted</span>
-                      <div className="text-3xl font-black text-stone-900 mt-1">{conductedClasses}</div>
-                      <span className="text-[11px] text-stone-500 mt-0.5 block">Across all subjects</span>
+                      <div className="text-3xl font-black text-stone-900 mt-1">{attendanceSummary.conductedClasses}</div>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">{attendanceSummary.label}</span>
                     </div>
                     <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
                       <span className="text-xs font-bold text-stone-400 uppercase">Classes Attended</span>
-                      <div className="text-3xl font-black text-green-700 mt-1">{attendedClasses}</div>
-                      <span className="text-[11px] text-green-600 font-bold mt-0.5 block">Present</span>
+                      <div className="text-3xl font-black text-green-700 mt-1">{attendanceSummary.attendedClasses}</div>
+                      <span className="text-[11px] text-green-600 font-bold mt-0.5 block">Present · {attendanceSummary.label}</span>
                     </div>
                     <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
                       <span className="text-xs font-bold text-stone-400 uppercase">Classes Missed</span>
-                      <div className="text-3xl font-black text-red-600 mt-1">{conductedClasses - attendedClasses}</div>
-                      <span className="text-[11px] text-red-500 mt-0.5 block">Absent</span>
+                      <div className="text-3xl font-black text-red-600 mt-1">{attendanceSummary.missedClasses}</div>
+                      <span className="text-[11px] text-red-500 mt-0.5 block">Absent · {attendanceSummary.label}</span>
                     </div>
                   </div>
 
@@ -1393,16 +1508,20 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                       <div>
                         <h3 className="font-extrabold text-lg text-stone-900">Attendance Trend</h3>
-                        <p className="text-xs text-stone-500">Attendance percentage by {attendancePeriod === 'daily' ? 'day' : attendancePeriod === 'weekly' ? 'week' : 'month'}</p>
+                        <p className="text-xs text-stone-500">
+                          {attendancePeriod === 'overall'
+                            ? 'Weekly attendance trend across the recorded months'
+                            : `Attendance percentage by ${attendancePeriod === 'daily' ? 'day' : attendancePeriod === 'weekly' ? 'week' : 'month'}`}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1 rounded-xl bg-stone-100 p-1" role="group" aria-label="Attendance chart time range">
-                        {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+                      <div className="grid w-full grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1 sm:w-auto sm:grid-cols-4" role="group" aria-label="Attendance chart time range">
+                        {(['daily', 'weekly', 'monthly', 'overall'] as const).map((period) => (
                           <button
                             key={period}
                             type="button"
                             onClick={() => setAttendancePeriod(period)}
                             aria-pressed={attendancePeriod === period}
-                            className={`px-3 py-2 rounded-lg text-xs font-bold capitalize transition ${
+                            className={`px-3 py-2 rounded-lg text-xs font-bold capitalize text-center transition ${
                               attendancePeriod === period
                                 ? 'bg-[#610000] text-white shadow-sm'
                                 : 'text-stone-600 hover:bg-white'
@@ -1417,23 +1536,47 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     <div className="h-72 w-full">
                       {attendanceTrendData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={attendanceTrendData} margin={{ top: 16, right: 12, left: 0, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
-                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#57534E' }} />
-                            <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: '#78716C' }} />
-                            <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Attendance']} />
-                            <ReferenceLine
-                              y={75}
-                              stroke="#D97706"
-                              strokeDasharray="5 5"
-                              label={{ value: '75% safe minimum', position: 'insideTopRight', fill: '#B45309', fontSize: 11 }}
-                            />
-                            <Bar dataKey="attendance" name="Attendance" radius={[7, 7, 0, 0]} maxBarSize={48}>
-                              {attendanceTrendData.map((entry) => (
-                                <Cell key={entry.label} fill={entry.attendance >= 75 ? '#16A34A' : '#DC2626'} />
-                              ))}
-                            </Bar>
-                          </BarChart>
+                          {attendancePeriod === 'overall' ? (
+                            <LineChart data={attendanceTrendData} margin={{ top: 16, right: 12, left: 0, bottom: 4 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#57534E' }} />
+                              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: '#78716C' }} />
+                              <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Attendance']} />
+                              <ReferenceLine
+                                y={75}
+                                stroke="#D97706"
+                                strokeDasharray="5 5"
+                                label={{ value: '75% safe minimum', position: 'insideTopRight', fill: '#B45309', fontSize: 11 }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="attendance"
+                                name="Attendance"
+                                stroke="#16A34A"
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: '#16A34A' }}
+                                activeDot={{ r: 6 }}
+                              />
+                            </LineChart>
+                          ) : (
+                            <BarChart data={attendanceTrendData} margin={{ top: 16, right: 12, left: 0, bottom: 4 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#57534E' }} />
+                              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: '#78716C' }} />
+                              <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Attendance']} />
+                              <ReferenceLine
+                                y={75}
+                                stroke="#D97706"
+                                strokeDasharray="5 5"
+                                label={{ value: '75% safe minimum', position: 'insideTopRight', fill: '#B45309', fontSize: 11 }}
+                              />
+                              <Bar dataKey="attendance" name="Attendance" radius={[7, 7, 0, 0]} maxBarSize={48}>
+                                {attendanceTrendData.map((entry) => (
+                                  <Cell key={entry.label} fill={entry.attendance >= 75 ? '#16A34A' : '#DC2626'} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          )}
                         </ResponsiveContainer>
                       ) : (
                         <div className="h-full flex items-center justify-center text-sm text-stone-500">
@@ -1447,7 +1590,15 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         <span className="w-2.5 h-2.5 rounded-full bg-green-600" /> Safe (75% or higher)
                         <span className="ml-2 w-2.5 h-2.5 rounded-full bg-red-600" /> At risk (below 75%)
                       </span>
-                      <span>Daily view shows the latest recorded month.</span>
+                      <span>
+                        {attendancePeriod === 'overall'
+                          ? 'Overall view connects weekly records across the recorded months.'
+                          : attendancePeriod === 'daily'
+                            ? 'Daily view shows the latest recorded month.'
+                            : attendancePeriod === 'weekly'
+                              ? 'Weekly view groups classes by week.'
+                              : 'Monthly view groups classes by month.'}
+                      </span>
                     </div>
                   </section>
                 </div>
