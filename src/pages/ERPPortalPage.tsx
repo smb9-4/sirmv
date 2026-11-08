@@ -27,8 +27,10 @@ import {
   IconVNavAttendance, IconVNavComplaints, IconVNavSettings,
 } from '../components/VerticalNavIcons';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell, ReferenceLine
 } from 'recharts';
+import { DEMO_ATTENDANCE_RECORDS } from '../data';
 import {
   PUC_ANNOUNCEMENTS,
   MOCK_EXAM_RESULTS,
@@ -43,16 +45,16 @@ import {
   Search, Filter, Download, ArrowLeft, CheckCircle2, User, Phone,
   Mail, Calendar, Clock, Award, ShieldAlert, Sparkles, BookOpen,
   Bell, ClipboardList, FolderOpen, ChartNoAxesCombined, CalendarDays,
-  MessageSquare, CalendarCheck, Check, Send, RotateCcw, Play, Eye, ArrowRight, Menu
+  MessageSquare, CalendarCheck, Check, Send, RotateCcw, Play, Eye, ArrowRight
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 
 const ADMIN_SECTION_DESCRIPTIONS: Record<string, string> = {
   device_admin: 'Manage student tablets, device inventory, serial specifications, and student device health.',
   exam_control: 'Monitor live exams, manage time, track submissions and review incidents.',
-  student_activity: 'Application usage analytics, managed browser logs and tab activity monitoring.',
-  security_remote: 'Remotely lock tablets, deploy apps, push OS updates and review audit logs.',
-  reports_intelligence: 'Institution-wide reports, student history, maintenance and system configuration.',
+  student_activity: 'Application and tab activity monitoring, student reports, and tablet notifications.',
+  security_remote: 'Manage app access, deploy apps, push OS updates and review audit logs.',
+  reports_intelligence: 'Institution-wide summaries, maintenance, and system configuration.',
 };
 
 const ADMIN_ITEM_BADGES: Partial<Record<ERPModuleId, string>> = {
@@ -62,18 +64,14 @@ const ADMIN_ITEM_BADGES: Partial<Record<ERPModuleId, string>> = {
   adm_submissions: '14',
   adm_exam_incidents: '9',
   adm_app_usage: '3 ⚠',
-  adm_browser_activity: '23 ✕',
-  adm_remote_lock: '1 🔒',
   adm_os_updates: '9',
   adm_student_reports: '100',
   adm_maintenance: '4 ⚠',
-  adm_notifications: '7',
 };
 
 const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
   adm_all_devices: 'Monitor every registered student tablet.',
   adm_battery_health: 'Review charge levels and battery status.',
-  adm_student_mapping: 'Match students with assigned tablets.',
   adm_device_inventory: 'Track tablet assets and warranty.',
   adm_serial_specs: 'Review device identifiers and hardware details.',
   adm_connectivity: 'Check network status and signal strength.',
@@ -83,18 +81,63 @@ const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
   adm_submissions: 'Track submitted and pending responses.',
   adm_exam_incidents: 'Review technical issues during exams.',
   adm_app_usage: 'Analyze app activity across devices.',
-  adm_browser_activity: 'Review browsing and blocked-site events.',
   adm_tab_activity: 'Monitor browser tab switching events.',
-  adm_remote_lock: 'Lock compromised tablets remotely.',
+  adm_block_access: 'Block a student app or tablet access with a recorded reason.',
+  adm_send_notification: 'Send a message to an individual student tablet.',
   adm_app_deployment: 'Install approved apps across tablets.',
   adm_os_updates: 'Manage operating system updates.',
   adm_audit_logs: 'Review administrative actions and history.',
   adm_overall_reports: 'View institution-wide system summaries.',
   adm_student_reports: 'Review individual student records.',
   adm_maintenance: 'Track service and repair requests.',
-  adm_notifications: 'Manage alerts and system messages.',
   adm_configuration: 'Adjust device and platform settings.',
 };
+
+type AttendancePeriod = 'daily' | 'weekly' | 'monthly';
+
+function getSundayExamLabel(year: number, month: number, day: number) {
+  const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weekOffset = Math.round(
+    (Date.UTC(year, month, day) - Date.UTC(2026, 10, 1)) / millisecondsPerWeek
+  );
+  return Math.abs(weekOffset) % 2 === 0 ? 'JEE Weekly Exam' : 'NEET Weekly Exam';
+}
+
+function getAttendanceTrendData(period: AttendancePeriod) {
+  const classRecords = DEMO_ATTENDANCE_RECORDS
+    .filter((record) => record.status === 'present' || record.status === 'absent')
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const latestMonth = classRecords[classRecords.length - 1]?.date.slice(0, 7);
+  const groups = new Map<string, { label: string; present: number; absent: number }>();
+
+  classRecords
+    .filter((record) => period !== 'daily' || record.date.startsWith(latestMonth ?? ''))
+    .forEach((record) => {
+      const [year, month, day] = record.date.split('-').map(Number);
+      const monthLabel = new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'short' });
+      const key = period === 'daily'
+        ? record.date
+        : period === 'weekly'
+          ? `${year}-${month}-week-${Math.ceil(day / 7)}`
+          : `${year}-${month}`;
+      const label = period === 'daily'
+        ? `${monthLabel} ${day}`
+        : period === 'weekly'
+          ? `${monthLabel} W${Math.ceil(day / 7)}`
+          : `${monthLabel} ${year}`;
+      const group = groups.get(key) ?? { label, present: 0, absent: 0 };
+
+      if (record.status === 'present') group.present += 1;
+      else group.absent += 1;
+      groups.set(key, group);
+    });
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    attendance: Math.round((group.present / (group.present + group.absent)) * 1000) / 10,
+  }));
+}
 
 interface ERPPortalPageProps {
   initialRole?: UserRoleType;
@@ -118,6 +161,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     if (location.pathname.includes('/results')) return 'reports';
     if (location.pathname.includes('/notes')) return 'notes';
     if (location.pathname.includes('/materials')) return 'materials';
+    if (location.pathname.includes('/calendar')) return 'college_calendar';
     if (location.pathname.includes('/timetable')) return 'timetable';
     if (location.pathname.includes('/attendance')) return 'attendance';
     if (location.pathname.includes('/complaints')) return 'complaints';
@@ -173,12 +217,50 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   // Collapsible Sidebar State (3 Horizontal Lines)
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
   const [activeAdminSectionId, setActiveAdminSectionId] = useState<string | null>(null);
+  const [hoveredAdminSectionId, setHoveredAdminSectionId] = useState<string | null>(null);
+  const [hoveredAdminModuleId, setHoveredAdminModuleId] = useState<ERPModuleId | null>(null);
+  const [attendancePeriod, setAttendancePeriod] = useState<AttendancePeriod>('daily');
+  const [academicCalendarMonth, setAcademicCalendarMonth] = useState(() => new Date(2026, 10, 1));
 
   // Portal Context
   const { announcements, exams, results, notes, studyMaterials, complaints, subjectAttendance } = usePortal();
+  const attendanceTrendData = getAttendanceTrendData(attendancePeriod);
+  const attendedClasses = subjectAttendance.reduce((total, subject) => total + subject.attendedClasses, 0);
+  const conductedClasses = subjectAttendance.reduce((total, subject) => total + subject.totalClasses, 0);
+  const overallAttendance = conductedClasses > 0
+    ? Math.round((attendedClasses / conductedClasses) * 1000) / 10
+    : 0;
+  const isAttendanceSafe = overallAttendance >= 75;
+  const academicCalendarYear = academicCalendarMonth.getFullYear();
+  const academicCalendarMonthIndex = academicCalendarMonth.getMonth();
+  const academicCalendarDayCount = new Date(academicCalendarYear, academicCalendarMonthIndex + 1, 0).getDate();
+  const academicCalendarOffset = new Date(academicCalendarYear, academicCalendarMonthIndex, 1).getDay();
+  const academicCalendarCellCount = Math.ceil((academicCalendarOffset + academicCalendarDayCount) / 7) * 7;
 
   const activeProfile = ROLE_PROFILES[currentRole === 'student' ? 'student' : 'admin'];
+  const activeSectionHeadingColor = currentRole === 'student' ? '#FFE59A' : '#1c1917';
+  const activeSectionTextColor = currentRole === 'student' ? '#AF7F57' : '#78716c';
+  const activeSectionBannerStyle = currentRole === 'student'
+    ? { backgroundColor: '#610000', borderColor: '#610000' }
+    : undefined;
+  const activeSectionBackButtonClass = currentRole === 'student'
+    ? 'border-[#AF7F57] text-[#AF7F57] hover:bg-white/10'
+    : 'border-stone-200 text-stone-600 hover:bg-stone-50';
   const activeAdminSection = ADMIN_NAV_SECTIONS.find((section) => section.sectionId === activeAdminSectionId);
+
+  const handleDashboardPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('[data-dashboard-card]')) return;
+
+    setExpandedCardId(null);
+    setHoveredAdminSectionId(null);
+    setHoveredAdminModuleId(null);
+
+    const focusedCard = document.activeElement;
+    if (focusedCard instanceof HTMLElement && focusedCard.hasAttribute('data-dashboard-card')) {
+      focusedCard.blur();
+    }
+  };
 
   // Trigger brief academic loader when switching roles
   const handleRoleChange = (newRole: UserRoleType) => {
@@ -187,6 +269,8 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     setActiveModule('dashboard');
     setExpandedCardId(null);
     setActiveAdminSectionId(null);
+    setHoveredAdminSectionId(null);
+    setHoveredAdminModuleId(null);
   };
 
   // 24 Workspace Modules definition for Principal/Admin/Teacher view
@@ -222,7 +306,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     {
       id: 'announcements',
       title: 'ANNOUNCEMENTS',
-      icon: Bell,
+      iconSrc: '/student-section-icons/announcements.png',
       desc: 'Official circulars from Principal, HOD, and faculty.',
       count: '3 New Notices',
       badgeBg: '#FFE59A',
@@ -231,13 +315,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Principal Notice', value: 'IA-2 Exam Schedule Commencing Nov 18' },
         { label: 'Last Updated', value: '2 hours ago' },
       ],
-      actionLabel: 'Open Announcements Feed',
       onAction: () => setActiveModule('noticeboard'),
     },
     {
       id: 'exams',
       title: 'EXAMS',
-      icon: ClipboardList,
+      iconSrc: '/student-section-icons/exams.png',
       desc: 'Live examinations & competitive mock test series.',
       count: '3 Available',
       badgeBg: '#E5BD55',
@@ -246,13 +329,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Live Assessment', value: 'JEE Mock Test Series 03 [DEMO]', highlight: true },
         { label: 'Recent Score', value: '212 / 300 Marks (70.7%)' },
       ],
-      actionLabel: 'Launch Examination Center',
       onAction: () => setActiveModule('tests'),
     },
     {
       id: 'notes',
       title: 'NOTES',
-      icon: BookOpen,
+      iconSrc: '/student-section-icons/notes.png',
       desc: 'Curated subject notes, chapter slides & PDF guides.',
       count: '8 Documents',
       badgeBg: '#FFFFFF',
@@ -261,13 +343,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Latest Upload', value: 'Data Structures Unit 4: Trees', highlight: true },
         { label: 'Uploaded by', value: 'Dr. Priya Nayak (Assoc. Prof)' },
       ],
-      actionLabel: 'Browse & Download Notes',
       onAction: () => setActiveModule('board_marks'),
     },
     {
       id: 'materials',
       title: 'STUDY MATERIALS',
-      icon: FolderOpen,
+      iconSrc: '/student-section-icons/materials.png',
       desc: 'Videos, worksheets, question banks & prep kits.',
       count: '14 Resources',
       badgeBg: '#FFFFFF',
@@ -276,13 +357,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Exam Tracks', value: 'JEE Main, KCET, NEET, VTU' },
         { label: 'Interactive Player', value: 'Available with full resolution' },
       ],
-      actionLabel: 'Explore Learning Resources',
       onAction: () => setActiveModule('classes'),
     },
     {
       id: 'results',
       title: 'RESULTS',
-      icon: ChartNoAxesCombined,
+      iconSrc: '/student-section-icons/results.png',
       desc: 'Performance analytics, scores & question-by-question review.',
       count: '70.7% Recent',
       badgeBg: '#FFE59A',
@@ -291,28 +371,40 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Latest Exam', value: 'JEE Mock Test 02: 212 / 300', highlight: true },
         { label: 'Accuracy', value: '58 Correct • 14 Incorrect • 18 Left' },
       ],
-      actionLabel: 'View Detailed Diagnostic Scorecard',
       onAction: () => setActiveModule('reports'),
     },
     {
       id: 'timetable',
-      title: 'TIMETABLE / CALENDAR',
-      icon: CalendarDays,
-      desc: 'Daily lecture schedule, lab slots, and event dates.',
-      count: '5th Sem Schedule',
+      title: 'TIMETABLE',
+      iconSrc: '/student-section-icons/timetable.png',
+      desc: 'Daily lectures, practical periods, and subject schedule.',
+      count: 'Weekly Schedule',
       badgeBg: '#FFFFFF',
       badgeColor: '#343434',
       previews: [
-        { label: "Today's Schedule", value: '4 Lectures + 3-Hour Lab Slot', highlight: true },
-        { label: 'Current Session', value: 'Period 2: Algorithms in Room 301' },
+        { label: 'Subjects', value: 'Physics, Chemistry, Maths & electives', highlight: true },
+        { label: 'Schedule', value: 'Theory classes and practical periods' },
       ],
-      actionLabel: 'Open Weekly Timetable',
       onAction: () => setActiveModule('timetable'),
+    },
+    {
+      id: 'calendar',
+      title: 'CALENDAR',
+      iconSrc: '/student-section-icons/timetable.png',
+      desc: 'Monthly JEE, NEET, and theory exam schedule.',
+      count: 'Weekly Exams',
+      badgeBg: '#FFFFFF',
+      badgeColor: '#343434',
+      previews: [
+        { label: 'Sunday Exams', value: 'JEE and NEET alternate weekly', highlight: true },
+        { label: 'Theory Exams', value: 'Every Wednesday and Saturday' },
+      ],
+      onAction: () => setActiveModule('college_calendar'),
     },
     {
       id: 'complaints',
       title: 'COMPLAINT BOX',
-      icon: MessageSquare,
+      iconSrc: '/student-section-icons/complaints.png',
       desc: 'Grievance redressal cell for academic & facility issues.',
       count: '1 Active Case',
       badgeBg: '#FFFFFF',
@@ -321,13 +413,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Active Reference', value: 'SIR-MV-2026-0062 (Under Review)', highlight: true },
         { label: 'Category', value: 'Classroom Infrastructure (Room 204)' },
       ],
-      actionLabel: 'Lodge or Track Grievance',
       onAction: () => setActiveModule('reported_issues'),
     },
     {
       id: 'attendance',
       title: 'ATTENDANCE',
-      icon: CalendarCheck,
+      iconSrc: '/student-section-icons/attendance.png',
       desc: 'Subject-wise class attendance, logs & warning metrics.',
       count: '86.4% Safe',
       badgeBg: '#DCFCE7',
@@ -336,7 +427,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Cohort Rate', value: '238 Attended of 276 Conducted', highlight: true },
         { label: 'Statutory Status', value: 'Above 75% VTU Minimum (Eligible)' },
       ],
-      actionLabel: 'Check Attendance Log',
       onAction: () => setActiveModule('attendance'),
     },
   ];
@@ -380,7 +470,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
       {/* Top Header with Role Switcher */}
       <div className="shrink-0">
-        <ERPHeader currentRole={currentRole} onRoleChange={handleRoleChange} />
+        <ERPHeader
+          currentRole={currentRole}
+          onRoleChange={handleRoleChange}
+          onToggleSidebar={() => setSidebarExpanded((prev) => !prev)}
+          isSidebarExpanded={sidebarExpanded}
+        />
       </div>
 
       {/* Main Layout: Sidebar + Dynamic Animated Content */}
@@ -390,32 +485,30 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           activeModule={activeModule}
           onSelectModule={(moduleId) => {
             setActiveModule(moduleId);
+            setExpandedCardId(null);
+            setHoveredAdminSectionId(null);
+            setHoveredAdminModuleId(null);
             if (moduleId === 'dashboard') setActiveAdminSectionId(null);
           }}
           onSelectAdminSection={(sectionId) => {
             setActiveModule('dashboard');
             setActiveAdminSectionId(sectionId);
+            setExpandedCardId(null);
+            setHoveredAdminSectionId(null);
+            setHoveredAdminModuleId(null);
           }}
           currentRole={currentRole}
           isExpanded={sidebarExpanded}
+          onExpandSidebar={() => setSidebarExpanded(true)}
           activeAdminSectionId={activeAdminSectionId}
         />
 
         <div className="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
-          <div className="flex h-12 shrink-0 items-center px-6 md:px-8">
-            <button
-              type="button"
-              onClick={() => setSidebarExpanded((prev) => !prev)}
-              aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
-              className="-ml-[15px] flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:bg-[#FFE59A] hover:text-[#650000]"
-            >
-              <Menu size={19} className="stroke-[2.5]" />
-            </button>
-          </div>
-
           {/* Right Content Area with Smooth Horizontal Slide Transitions */}
-          <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+          <main
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6"
+            onPointerDownCapture={activeModule === 'dashboard' ? handleDashboardPointerDown : undefined}
+          >
             <AnimatePresence mode="wait">
               <PageTransition pageKey={`${currentRole}_${activeModule}_${activeAdminSectionId ?? ''}`}>
               {/* ─────────────────────────────────────────────────────────────
@@ -457,10 +550,10 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         </div>
 
                         <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                          Welcome back, Rahul Sharma!
+                          Welcome back, <span className="student-dashboard-welcome-name">Rahul Sharma!</span>
                         </h1>
                         <p className="text-sm text-white/90">
-                          Roll No: <strong className="text-white">24PUC101</strong> • <span className="text-[#FFE59A] font-bold">{pucYear} Science (PCMB / PCMC)</span> • Shivamogga Campus
+                          Roll No: <strong className="text-white">24PUC101</strong> • <span className="text-[#FFE59A] font-bold">{pucYear} Science (PCMB / PCMC)</span>
                         </p>
                         <p className="text-xs text-white/75 flex flex-wrap gap-1.5 pt-0.5">
                           <span className="font-semibold text-white/90">PUC Core Subjects:</span>
@@ -469,7 +562,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                           <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Mathematics</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Biology</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Comp Science</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Statistics</span>
                         </p>
                       </div>
 
@@ -506,7 +598,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-black text-stone-900 uppercase tracking-wider">
-                        INTERACTIVE ACADEMIC MODULES (8)
+                        INTERACTIVE ACADEMIC MODULES (9)
                       </h2>
                       <p className="text-xs text-stone-500">
                         Hover or tap any card to smoothly expand and reveal contextual operational details
@@ -526,7 +618,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         isExpanded={expandedCardId === card.id}
                         onHoverStart={() => setExpandedCardId(card.id)}
                         onHoverEnd={() => setExpandedCardId(null)}
-                        onToggleTap={() => setExpandedCardId(prev => prev === card.id ? null : card.id)}
                       />
                     ))}
                   </div>
@@ -535,22 +626,25 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
               {currentRole !== 'student' && activeModule === 'dashboard' && activeAdminSection && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div
+                    className="rounded-3xl p-6 shadow-sm border flex flex-col sm:flex-row sm:items-center gap-4"
+                    style={{ backgroundColor: '#610000', borderColor: '#610000' }}
+                  >
                     <button
                       type="button"
                       onClick={() => setActiveAdminSectionId(null)}
-                      className="flex items-center gap-2 self-start rounded-xl border border-stone-200 px-3 py-2 text-xs font-bold text-stone-600 transition hover:bg-stone-50"
+                      className="flex items-center gap-2 self-start rounded-xl border border-[#F6B523]/50 px-3 py-2 text-xs font-bold text-[#F3F3F3] transition hover:bg-white/10"
                     >
                       <ArrowLeft size={15} />
                       All Sections
                     </button>
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-xl font-black tracking-tight text-stone-900">{activeAdminSection.sectionLabel}</h1>
-                      <p className="mt-1 text-xs leading-relaxed text-stone-500">
+                      <h1 className="text-xl font-black tracking-tight text-[#F3F3F3]">{activeAdminSection.sectionLabel}</h1>
+                      <p className="mt-1 text-xs leading-relaxed text-[#F3F3F3]">
                         {ADMIN_SECTION_DESCRIPTIONS[activeAdminSection.sectionId]}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1.5 text-xs font-bold text-stone-600">
+                    <span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-[#F3F3F3]">
                       {activeAdminSection.items.length} modules
                     </span>
                   </div>
@@ -559,22 +653,34 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     {activeAdminSection.items.map((item) => {
                       const ItemIcon = item.icon;
                       const badge = ADMIN_ITEM_BADGES[item.id] ?? item.badge;
+                      const isHovered = hoveredAdminModuleId === item.id;
 
                       return (
                         <motion.button
                           key={item.id}
                           type="button"
+                          data-dashboard-card="admin-module"
+                          onPointerEnter={() => setHoveredAdminModuleId(item.id)}
+                          onPointerLeave={() => setHoveredAdminModuleId((hoveredId) => hoveredId === item.id ? null : hoveredId)}
+                          onFocus={() => setHoveredAdminModuleId(item.id)}
+                          onBlur={() => setHoveredAdminModuleId((hoveredId) => hoveredId === item.id ? null : hoveredId)}
                           onClick={() => {
+                            setHoveredAdminModuleId(null);
                             setActiveModule(item.id);
-                            setActiveAdminSectionId(null);
                           }}
-                          whileHover={{ y: -3, boxShadow: '0 16px 30px -20px rgba(15,23,42,0.35)' }}
+                          animate={{
+                            y: isHovered ? -5 : 0,
+                            scale: isHovered ? 1.025 : 1,
+                            boxShadow: isHovered ? '0 20px 36px -20px rgba(15,23,42,0.35)' : '0 2px 6px -2px rgba(15,23,42,0.12)',
+                          }}
                           transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                          className="group flex min-h-36 flex-col rounded-3xl border border-stone-200 bg-white p-5 text-left shadow-sm transition-colors hover:border-stone-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
+                          className="group relative flex min-h-36 flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white p-5 pb-12 text-left shadow-sm transition-colors hover:border-stone-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
                         >
                           <span className="mb-3.5 flex min-h-11 w-full items-start justify-between">
                             <span
-                              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF0F0] text-[#650000] shadow-xs"
+                              className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF0F0] text-[#650000] shadow-xs transition-[filter] ${
+                                isHovered ? 'drop-shadow-[0_0_16px_#E6C28F]' : ''
+                              } group-focus-visible:drop-shadow-[0_0_16px_#E6C28F]`}
                               style={{ color: item.colorAccent ?? activeAdminSection.sectionColor }}
                             >
                               <ItemIcon size={33} />
@@ -588,13 +694,20 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                               </span>
                             )}
                           </span>
-                          <span className="mt-4 font-black text-sm text-stone-800">{item.label}</span>
+                          <span className={`mt-4 font-black text-sm transition-colors ${
+                            isHovered ? 'text-[#A60000]' : 'text-stone-800'
+                          } group-focus-visible:text-[#A60000]`}>{item.label}</span>
                           <span className="mt-1 text-[11px] leading-relaxed text-stone-500">
                             {ADMIN_ITEM_DESCRIPTIONS[item.id]}
                           </span>
-                          <span className="mt-auto flex w-full items-center justify-between pt-4 text-xs font-black text-[#A60000]">
-                            Open module
-                            <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+                          <span
+                            aria-hidden="true"
+                            className={`absolute inset-x-0 bottom-0 flex h-10 items-center justify-center gap-2 bg-[#A60000] text-xs font-black text-white transition-transform duration-300 ease-out ${
+                              isHovered ? 'translate-y-0' : 'translate-y-full'
+                            } group-focus-visible:translate-y-0`}
+                          >
+                            <span>Open</span>
+                            <ArrowRight size={15} className={`transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
                           </span>
                         </motion.button>
                       );
@@ -631,38 +744,65 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   </div>
 
                   {/* ── 5 Section Cards ── */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+                  <div className="grid grid-cols-1 gap-5 auto-rows-fr items-stretch sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     {ADMIN_NAV_SECTIONS.map((section) => {
-                      const SectionIcon = section.sectionIcon;
+                      const isHovered = hoveredAdminSectionId === section.sectionId;
+
                       return (
                         <motion.button
                           key={section.sectionId}
                           type="button"
                           aria-label={`Open ${section.sectionLabel} page`}
-                          onClick={() => setActiveAdminSectionId(section.sectionId)}
+                          data-dashboard-card="admin-section"
+                          onPointerEnter={() => setHoveredAdminSectionId(section.sectionId)}
+                          onPointerLeave={() => setHoveredAdminSectionId((hoveredId) => hoveredId === section.sectionId ? null : hoveredId)}
+                          onFocus={() => setHoveredAdminSectionId(section.sectionId)}
+                          onBlur={() => setHoveredAdminSectionId((hoveredId) => hoveredId === section.sectionId ? null : hoveredId)}
+                          onClick={() => {
+                            setHoveredAdminSectionId(null);
+                            setActiveAdminSectionId(section.sectionId);
+                          }}
                           layout
-                          whileHover={{ y: -5, scale: 1.025, boxShadow: '0 20px 36px -20px rgba(15,23,42,0.35)' }}
+                          animate={{
+                            y: isHovered ? -5 : 0,
+                            scale: isHovered ? 1.025 : 1,
+                            boxShadow: isHovered ? '0 20px 36px -20px rgba(15,23,42,0.35)' : '0 2px 6px -2px rgba(15,23,42,0.12)',
+                          }}
                           transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                          className="group flex min-h-[244px] flex-col overflow-hidden rounded-3xl border border-stone-200 border-t-[3px] bg-white p-5 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
+                          className="group relative flex h-full min-h-[310px] flex-col overflow-hidden rounded-3xl border border-stone-200 border-t-[3px] bg-white p-5 pb-12 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
                           style={{ borderTopColor: '#650000' }}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-[#650000]">
-                              <SectionIcon size={27} />
-                            </span>
+                          <div className="flex items-start justify-end gap-3">
                             <span className="rounded-full border border-stone-100 px-3 py-1.5 text-[10px] font-black text-stone-700">
                               {section.items.length} Modules
                             </span>
                           </div>
 
-                          <div className="mt-4">
-                            <h2 className="font-black text-sm uppercase tracking-wide text-stone-900">{section.sectionLabel}</h2>
+                          <div className="flex h-[132px] w-full items-center justify-center">
+                            <img
+                              src={section.sectionIconSrc}
+                              alt=""
+                              className={`h-full w-[190px] object-contain transition duration-300 ease-out ${
+                                isHovered ? 'drop-shadow-[0_0_16px_#E6C28F]' : ''
+                              } group-focus-visible:drop-shadow-[0_0_16px_#E6C28F]`}
+                            />
+                          </div>
+
+                          <div className="mt-3 text-center">
+                            <h2 className={`font-black text-sm uppercase tracking-wide transition-colors duration-300 ${
+                              isHovered ? 'text-[#A60000]' : 'text-stone-900'
+                            } group-focus-visible:text-[#A60000]`}>{section.sectionLabel}</h2>
                             <p className="mt-1 text-xs leading-relaxed text-stone-500">{ADMIN_SECTION_DESCRIPTIONS[section.sectionId]}</p>
                           </div>
 
-                          <span className="mt-auto flex w-full items-center justify-between border-t border-stone-100 pt-3 text-xs font-black text-[#A60000]">
-                            <span>Open section</span>
-                            <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+                          <span
+                            aria-hidden="true"
+                            className={`absolute inset-x-0 bottom-0 flex h-10 items-center justify-center gap-2 bg-[#A60000] text-xs font-black text-white transition-transform duration-300 ease-out ${
+                              isHovered ? 'translate-y-0' : 'translate-y-full'
+                            } group-focus-visible:translate-y-0`}
+                          >
+                            <span>Open</span>
+                            <ArrowRight size={15} className={`transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
                           </span>
                         </motion.button>
                       );
@@ -952,19 +1092,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'reports' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           {currentRole === 'student' ? 'EXAMINATION RESULTS & DIAGNOSTIC SCORECARDS' : 'INSTITUTIONAL PERFORMANCE & COHORT REPORTS'}
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           {currentRole === 'student'
                             ? 'Comprehensive diagnostic performance across JEE, NEET, KCET, and Board Theory examinations'
                             : 'Cohort score distribution across all 100 students'}
@@ -1199,7 +1339,121 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {/* ─────────────────────────────────────────────────────────────
                   ATTENDANCE MODULE
                   ───────────────────────────────────────────────────────────── */}
-              {activeModule === 'attendance' && (
+              {activeModule === 'attendance' && currentRole === 'student' && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setActiveModule('dashboard')}
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
+                        aria-label="Back to dashboard"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <div>
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>MY ATTENDANCE</h2>
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>Daily, weekly and monthly attendance records</p>
+                      </div>
+                    </div>
+                    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black ${
+                      isAttendanceSafe ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {isAttendanceSafe ? <CheckCircle2 size={16} /> : <ShieldAlert size={16} />}
+                      <span>{isAttendanceSafe ? 'SAFE' : 'AT RISK'}</span>
+                      <span className="font-bold">{overallAttendance}% · 75% minimum</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
+                      <span className="text-xs font-bold text-stone-400 uppercase">Overall Attendance</span>
+                      <div className={`text-3xl font-black mt-1 ${isAttendanceSafe ? 'text-green-700' : 'text-red-600'}`}>
+                        {overallAttendance}%
+                      </div>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">75% required</span>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
+                      <span className="text-xs font-bold text-stone-400 uppercase">Classes Conducted</span>
+                      <div className="text-3xl font-black text-stone-900 mt-1">{conductedClasses}</div>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">Across all subjects</span>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
+                      <span className="text-xs font-bold text-stone-400 uppercase">Classes Attended</span>
+                      <div className="text-3xl font-black text-green-700 mt-1">{attendedClasses}</div>
+                      <span className="text-[11px] text-green-600 font-bold mt-0.5 block">Present</span>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 border border-stone-200/70 text-center apple-card">
+                      <span className="text-xs font-bold text-stone-400 uppercase">Classes Missed</span>
+                      <div className="text-3xl font-black text-red-600 mt-1">{conductedClasses - attendedClasses}</div>
+                      <span className="text-[11px] text-red-500 mt-0.5 block">Absent</span>
+                    </div>
+                  </div>
+
+                  <section className="bg-white rounded-3xl p-5 md:p-6 border border-stone-200/80 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                      <div>
+                        <h3 className="font-extrabold text-lg text-stone-900">Attendance Trend</h3>
+                        <p className="text-xs text-stone-500">Attendance percentage by {attendancePeriod === 'daily' ? 'day' : attendancePeriod === 'weekly' ? 'week' : 'month'}</p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-xl bg-stone-100 p-1" role="group" aria-label="Attendance chart time range">
+                        {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+                          <button
+                            key={period}
+                            type="button"
+                            onClick={() => setAttendancePeriod(period)}
+                            aria-pressed={attendancePeriod === period}
+                            className={`px-3 py-2 rounded-lg text-xs font-bold capitalize transition ${
+                              attendancePeriod === period
+                                ? 'bg-[#610000] text-white shadow-sm'
+                                : 'text-stone-600 hover:bg-white'
+                            }`}
+                          >
+                            {period}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="h-72 w-full">
+                      {attendanceTrendData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={attendanceTrendData} margin={{ top: 16, right: 12, left: 0, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E4" />
+                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#57534E' }} />
+                            <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: '#78716C' }} />
+                            <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Attendance']} />
+                            <ReferenceLine
+                              y={75}
+                              stroke="#D97706"
+                              strokeDasharray="5 5"
+                              label={{ value: '75% safe minimum', position: 'insideTopRight', fill: '#B45309', fontSize: 11 }}
+                            />
+                            <Bar dataKey="attendance" name="Attendance" radius={[7, 7, 0, 0]} maxBarSize={48}>
+                              {attendanceTrendData.map((entry) => (
+                                <Cell key={entry.label} fill={entry.attendance >= 75 ? '#16A34A' : '#DC2626'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-sm text-stone-500">
+                          No attendance records are available for this period.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-4 text-xs text-stone-500">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-600" /> Safe (75% or higher)
+                        <span className="ml-2 w-2.5 h-2.5 rounded-full bg-red-600" /> At risk (below 75%)
+                      </span>
+                      <span>Daily view shows the latest recorded month.</span>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {activeModule === 'attendance' && currentRole !== 'student' && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1262,19 +1516,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {(activeModule === 'announcements' || activeModule === 'noticeboard') && (
                 <div className="space-y-6">
                   {/* Module Header */}
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           OFFICIAL NOTIFICATIONS & CIRCULARS FEED
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           Verified academic circulars received directly from Principal, HODs, and Subject Teachers
                         </p>
                       </div>
@@ -1420,19 +1674,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {(activeModule === 'tests' || activeModule === 'exam_management') && (
                 <div className="space-y-6">
                   {/* Module Header with Live vs Practice Segmented Switcher */}
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => { setActiveModule('dashboard'); setPracticeSessionActive(false); }}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           EXAMINATION & ASSESSMENT CENTER
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           {examViewMode === 'live'
                             ? 'Live teacher-uploaded official papers and examination terminals'
                             : 'Practice examination dashboard with subject analytics and custom revision studio'}
@@ -2070,19 +2324,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {(activeModule === 'notes' || activeModule === 'board_marks') && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           OFFICIAL VERIFIED SUBJECT NOTES
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           Official chapter slides, handwritten notes & study modules endorsed by faculty
                         </p>
                       </div>
@@ -2123,19 +2377,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'materials' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           MULTIMEDIA & PREPARATION STUDY MATERIALS
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           Interactive video lectures, PPT presentations and competitive problem sheets
                         </p>
                       </div>
@@ -2172,24 +2426,24 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               )}
 
               {/* ─────────────────────────────────────────────────────────────
-                  TIMETABLE / CALENDAR MODULE
+                  TIMETABLE MODULE
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'timetable' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
-                          WEEKLY ACADEMIC TIMETABLE & LECTURE SCHEDULE
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
+                          WEEKLY ACADEMIC TIMETABLE
                         </h2>
-                        <p className="text-xs text-stone-500">
-                          5th Semester • Section A & B Lecture Room Matrix
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
+                          II PU Science • Physics, Chemistry, Maths & elective options
                         </p>
                       </div>
                     </div>
@@ -2214,12 +2468,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </thead>
                       <tbody className="divide-y divide-stone-100">
                         {[
-                          { day: 'Monday', p1: 'Data Structures (Room 301)', p2: 'Algorithms (Room 301)', p3: 'Operating Systems (Room 204)', p4: 'Mathematics (Room 301)', lab: 'Data Structures Lab (CS Lab 2)' },
-                          { day: 'Tuesday', p1: 'Algorithms (Room 301)', p2: 'Theory of Computation', p3: 'Data Structures (Room 301)', p4: 'Chemistry (Room 102)', lab: 'Python Programming Lab' },
-                          { day: 'Wednesday', p1: 'Computer Networks', p2: 'Operating Systems', p3: 'Mathematics (Room 301)', p4: 'English / Comm', lab: 'Hardware Architecture Lab' },
-                          { day: 'Thursday', p1: 'Theory of Computation', p2: 'Data Structures', p3: 'Computer Networks', p4: 'Physics (Room 201)', lab: 'Competitive Coding & Mocks' },
-                          { day: 'Friday', p1: 'Operating Systems', p2: 'Mathematics', p3: 'Algorithms', p4: 'Constitution of India', lab: 'Project & Seminar Slot' },
-                          { day: 'Saturday', p1: 'Weekly Quiz & Review', p2: 'Faculty Doubt Session', p3: 'Remedial Coaching', p4: 'Sports / Extra-Curricular', lab: 'Library & Self-Study' },
+                          { day: 'Monday', p1: 'Physics (Room 301)', p2: 'Chemistry (Room 301)', p3: 'Maths (Room 204)', p4: 'Comp. Science / Statistics / Biology', lab: 'Physics / Chemistry Practical (Science Lab)' },
+                          { day: 'Tuesday', p1: 'Chemistry (Room 301)', p2: 'Maths (Room 301)', p3: 'Physics (Room 204)', p4: 'Comp. Science / Statistics / Biology', lab: 'Computer Science / Biology Practical Lab' },
+                          { day: 'Wednesday', p1: 'Maths (Room 301)', p2: 'Physics (Room 301)', p3: 'Chemistry (Room 204)', p4: 'Comp. Science / Statistics / Biology', lab: 'Science Practical & Revision' },
+                          { day: 'Thursday', p1: 'Physics (Room 301)', p2: 'Comp. Science / Statistics / Biology', p3: 'Maths (Room 301)', p4: 'Chemistry (Room 201)', lab: 'Physics Practical (Science Lab)' },
+                          { day: 'Friday', p1: 'Comp. Science / Statistics / Biology', p2: 'Chemistry (Room 301)', p3: 'Maths (Room 301)', p4: 'Physics (Room 201)', lab: 'Chemistry Practical (Science Lab)' },
+                          { day: 'Saturday', p1: 'Physics (Room 301)', p2: 'Chemistry (Room 301)', p3: 'Maths (Room 204)', p4: 'Comp. Science / Statistics / Biology', lab: 'Weekly Revision & Practical Session' },
                         ].map((row, idx) => (
                           <tr key={idx} className="hover:bg-stone-50/70 transition">
                             <td className="py-3.5 px-3 font-bold text-stone-900 bg-stone-50/50">{row.day}</td>
@@ -2236,24 +2490,139 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 </div>
               )}
 
+              {activeModule === 'college_calendar' && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center gap-3" style={activeSectionBannerStyle}>
+                    <button
+                      onClick={() => setActiveModule('dashboard')}
+                      className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
+                      aria-label="Back to dashboard"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <CalendarDays size={22} style={{ color: activeSectionHeadingColor }} />
+                      <div>
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>STUDENT ACADEMIC CALENDAR</h2>
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>JEE / NEET and theory exam schedule</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <section className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-stone-200/80 space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
+                      <div>
+                        <h3 className="font-extrabold text-lg text-stone-900">ACADEMIC EXAM CALENDAR</h3>
+                        <p className="text-xs text-stone-500 mt-1">
+                          JEE and NEET exams alternate every Sunday • Theory exams every Wednesday and Saturday
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between sm:justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setAcademicCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))}
+                          className="px-3 py-2 rounded-lg border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50"
+                          aria-label="Previous month"
+                        >
+                          Previous
+                        </button>
+                        <span className="min-w-[140px] text-center text-sm font-black uppercase tracking-wide text-stone-800">
+                          {academicCalendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAcademicCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))}
+                          className="px-3 py-2 rounded-lg border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50"
+                          aria-label="Next month"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-stone-600">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-blue-500" /> JEE weekly exam
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-violet-500" /> NEET weekly exam
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-red-500" /> Theory exam
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                        <div key={day} className="rounded-md bg-slate-500 py-2 text-[10px] sm:text-xs font-extrabold uppercase text-white">
+                          {day}
+                        </div>
+                      ))}
+                      {Array.from({ length: academicCalendarCellCount }).map((_, index) => {
+                        const dayOfMonth = index - academicCalendarOffset + 1;
+                        const isCurrentMonth = dayOfMonth >= 1 && dayOfMonth <= academicCalendarDayCount;
+                        const displayDay = dayOfMonth < 1
+                          ? new Date(academicCalendarYear, academicCalendarMonthIndex, 0).getDate() + dayOfMonth
+                          : dayOfMonth > academicCalendarDayCount
+                            ? dayOfMonth - academicCalendarDayCount
+                            : dayOfMonth;
+                        const weekday = new Date(academicCalendarYear, academicCalendarMonthIndex, dayOfMonth).getDay();
+                        const examLabel = isCurrentMonth
+                          ? weekday === 0
+                            ? getSundayExamLabel(academicCalendarYear, academicCalendarMonthIndex, dayOfMonth)
+                            : weekday === 3 || weekday === 6
+                              ? 'Theory Exam'
+                              : null
+                          : null;
+                        const eventColor = examLabel?.startsWith('JEE')
+                          ? 'border-blue-200 bg-blue-50 text-blue-800'
+                          : examLabel?.startsWith('NEET')
+                            ? 'border-violet-200 bg-violet-50 text-violet-800'
+                            : examLabel
+                              ? 'border-red-200 bg-red-50 text-red-800'
+                              : 'border-stone-200 bg-white text-stone-700';
+
+                        return (
+                          <div
+                            key={`${academicCalendarYear}-${academicCalendarMonthIndex}-${index}`}
+                            className={`min-h-[68px] sm:min-h-[86px] rounded-lg border p-1.5 sm:p-2 text-left ${
+                              isCurrentMonth ? eventColor : 'border-stone-100 bg-stone-50/60 text-stone-300'
+                            }`}
+                          >
+                            <span className={`text-xs sm:text-sm font-bold ${isCurrentMonth ? '' : 'text-stone-300'}`}>
+                              {displayDay}
+                            </span>
+                            {examLabel && (
+                              <span className="mt-2 block break-words text-[8px] sm:text-[10px] font-extrabold leading-tight">
+                                {examLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              )}
+
               {/* ─────────────────────────────────────────────────────────────
                   COMPLAINTS / GRIEVANCE REDRESSAL MODULE
                   ───────────────────────────────────────────────────────────── */}
               {(activeModule === 'complaints' || activeModule === 'reported_issues') && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
                           CAMPUS GRIEVANCE & COMPLAINTS CELL
                         </h2>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           Official student welfare channel monitored by Principal & Redressal Committee
                         </p>
                       </div>
@@ -2732,6 +3101,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 activeModule !== 'board_marks' &&
                 activeModule !== 'materials' &&
                 activeModule !== 'timetable' &&
+                activeModule !== 'college_calendar' &&
                 activeModule !== 'complaints' &&
                 activeModule !== 'reported_issues' &&
                 activeModule !== 'classes' &&

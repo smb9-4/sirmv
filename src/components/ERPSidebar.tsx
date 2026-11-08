@@ -17,9 +17,23 @@ interface ERPSidebarProps {
   onSelectModule: (moduleId: ERPModuleId) => void;
   currentRole?: UserRoleType;
   isExpanded?: boolean;
+  onExpandSidebar?: () => void;
   activeAdminSectionId?: string | null;
   onSelectAdminSection: (sectionId: string) => void;
 }
+
+const SECTION_ICON_IMAGES: Partial<Record<ERPModuleId, string>> = {
+  dashboard: '/sidebar-icons/dashboard.png',
+  announcements: '/sidebar-icons/announcements.png',
+  tests: '/sidebar-icons/exams.png',
+  notes: '/sidebar-icons/notes.png',
+  materials: '/sidebar-icons/materials.png',
+  reports: '/sidebar-icons/results.png',
+  timetable: '/sidebar-icons/timetable.png',
+  college_calendar: '/sidebar-icons/timetable.png',
+  complaints: '/sidebar-icons/complaints.png',
+  attendance: '/sidebar-icons/attendance.png',
+};
 
 /* ─────────────────────────────────────────────────────────────────────────────
    FLAT NAV ITEM BUTTON (used for student + non-admin roles)
@@ -37,6 +51,7 @@ function FlatNavItem({
 }) {
   const [hovered, setHovered] = useState(false);
   const Icon = item.icon;
+  const iconImage = SECTION_ICON_IMAGES[item.id];
 
   return (
     <div className="relative w-full px-0.5">
@@ -52,44 +67,69 @@ function FlatNavItem({
         }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 450, damping: 24, mass: 0.5 }}
-        className={`relative transition-all duration-200 cursor-pointer ${
+        className={`group relative transition-all duration-200 cursor-pointer ${
           isExpanded
             ? 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left'
-            : 'w-[68px] mx-auto py-2 px-1 rounded-2xl flex flex-col items-center justify-center text-center'
+            : 'w-[68px] mx-auto py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
         } ${
           isActive
-            ? 'bg-[#E8F0FE] text-[#1A73E8] border border-[#BFDBFE] shadow-xs'
-            : 'text-stone-700 hover:text-stone-900 hover:bg-stone-50/90'
+            ? 'bg-[#F3F3F3] text-[#610000] border border-[#E6C28F] shadow-xs'
+            : 'text-[#FFE59A] border border-transparent hover:text-[#FFE59A] hover:bg-white/10'
         }`}
       >
         {isActive && (
           <motion.div
             layoutId="activeVerticalIndicator"
-            className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#1A73E8]"
+            className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#610000]"
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           />
         )}
 
-        <div className={`flex items-center justify-center shrink-0 transition-all ${isExpanded ? 'w-6 h-6' : 'w-8 h-8 mb-1'}`}>
-          <Icon size={isExpanded ? 19 : 28} />
-        </div>
+        {iconImage ? (
+          <img
+            src={iconImage}
+            alt=""
+            className={`shrink-0 object-contain transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F] ${
+              isExpanded ? 'w-6 h-6' : 'w-[38px] h-[38px]'
+            }`}
+          />
+        ) : (
+          <div className={`flex items-center justify-center shrink-0 transition-all ${isExpanded ? 'w-6 h-6' : 'w-[38px] h-[38px]'}`}>
+            <Icon
+              size={isExpanded ? 19 : 34}
+              className="transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+            />
+          </div>
+        )}
 
-        <span className={`leading-tight transition-all block ${
-          isExpanded
-            ? 'text-[13px] font-black tracking-normal text-stone-900 flex-1 truncate'
-            : 'text-[9.5px] font-bold tracking-tight text-center truncate max-w-[62px]'
-        } ${isActive ? 'text-[#1A73E8] font-black' : ''}`}>
-          {item.label}
-        </span>
+        {!isExpanded && (
+          <AnimatePresence>
+            {hovered && (
+              <motion.span
+                initial={{ opacity: 0, y: -5, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -5, height: 0 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="max-w-[64px] whitespace-normal text-[9px] font-bold leading-tight text-center text-[#FFE59A]"
+              >
+                {item.label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        )}
 
-        {item.badge && (
-          <span className={`font-black uppercase shadow-2xs border ${
-            isExpanded
-              ? 'ml-auto text-[10px] px-2 py-0.5 rounded-full'
-              : 'absolute top-0.5 right-1 text-[9px] px-1.5 rounded-full'
-          } ${
+        {isExpanded && (
+          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal flex-1 truncate ${
+            isActive ? 'text-[#610000]' : 'text-[#FFE59A]'
+          }`}>
+            {item.label}
+          </span>
+        )}
+
+        {item.badge && isExpanded && (
+          <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-black uppercase shadow-2xs border ${
             isActive
-              ? 'bg-[#1A73E8] text-white border-white'
+              ? 'bg-[#610000] text-white border-[#610000]'
               : item.badge === 'Live' || item.badge === 'LIVE'
               ? 'bg-[#EF4444] text-white border-white animate-pulse'
               : 'bg-[#EF4444] text-white border-white'
@@ -99,22 +139,6 @@ function FlatNavItem({
         )}
       </motion.button>
 
-      <AnimatePresence>
-        {!isExpanded && hovered && (
-          <motion.div
-            initial={{ opacity: 0, x: 6, scale: 0.95 }}
-            animate={{ opacity: 1, x: 76, scale: 1 }}
-            exit={{ opacity: 0, x: 4, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:flex items-center"
-          >
-            <div className="bg-stone-900 text-white text-xs font-black py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap flex items-center gap-1.5 border border-stone-800">
-              <span>{item.label}</span>
-              <ChevronRight size={12} className="text-stone-400" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -135,6 +159,7 @@ function AdminSectionGroup({
   isExpanded: boolean;
   onSelectSection: (sectionId: string) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
   const isActive =
     activeAdminSectionId === section.sectionId ||
     section.items.some((i) => i.id === activeModule);
@@ -143,38 +168,58 @@ function AdminSectionGroup({
   return (
     <button
       onClick={() => onSelectSection(section.sectionId)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       aria-current={isActive ? 'page' : undefined}
-      className={`relative w-full transition-all duration-150 rounded-xl ${
+      className={`group relative w-full transition-all duration-150 rounded-xl ${
         sidebarExpanded
           ? 'px-2 py-2 flex items-center gap-2 text-left'
-          : 'flex-col px-1 py-2 flex items-center justify-center'
+          : 'flex-col px-1 py-2 flex items-center justify-center gap-1'
       } ${
         isActive
-          ? 'bg-[#E8F0FE] text-[#1A73E8] border border-[#BFDBFE] shadow-xs'
-          : 'hover:bg-stone-50'
+        ? 'bg-[#F3F3F3] text-[#610000] border border-[#E6C28F] shadow-xs'
+        : 'text-[#FFE59A] border border-transparent hover:bg-white/10 hover:text-[#FFE59A]'
       }`}
-      title={section.sectionLabel}
+      title={sidebarExpanded ? section.sectionLabel : undefined}
     >
       {isActive && (
-        <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#1A73E8]" />
+        <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#610000]" />
       )}
-      <span className="shrink-0" style={{ color: isActive ? '#1A73E8' : section.sectionColor }}>
-        <SectionIcon size={sidebarExpanded ? 20 : 26} />
+      <span className="shrink-0 transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]" style={{ color: isActive ? '#610000' : '#FFE59A' }}>
+        {section.sidebarIconSrc ? (
+          <img
+            src={section.sidebarIconSrc}
+            alt=""
+            className={`object-contain ${sidebarExpanded ? 'h-5 w-5' : 'h-[31px] w-[31px]'}`}
+          />
+        ) : (
+          <SectionIcon size={sidebarExpanded ? 20 : 31} />
+        )}
       </span>
       {sidebarExpanded ? (
         <>
           <span
             className="flex-1 text-left text-[11px] font-black uppercase tracking-wider truncate"
-            style={{ color: isActive ? '#1A73E8' : section.sectionColor }}
+            style={{ color: isActive ? '#610000' : '#FFE59A' }}
           >
             {section.sectionLabel}
           </span>
-          <ChevronRight size={13} className="shrink-0" style={{ color: isActive ? '#1A73E8' : section.sectionColor }} />
+          <ChevronRight size={13} className="shrink-0" style={{ color: isActive ? '#610000' : '#FFE59A' }} />
         </>
       ) : (
-        <span className="text-[8px] font-black uppercase tracking-tight leading-tight text-center" style={{ color: isActive ? '#1A73E8' : section.sectionColor, maxWidth: 62 }}>
-          {section.sectionLabel.split(' ')[0]}
-        </span>
+        <AnimatePresence>
+          {hovered && (
+            <motion.span
+              initial={{ opacity: 0, y: -5, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -5, height: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="max-w-[64px] whitespace-normal text-[8px] font-black uppercase leading-tight text-center text-[#FFE59A]"
+            >
+              {section.sectionLabel}
+            </motion.span>
+          )}
+        </AnimatePresence>
       )}
     </button>
   );
@@ -188,6 +233,7 @@ export default function ERPSidebar({
   onSelectModule,
   currentRole = 'principal',
   isExpanded: externalExpanded,
+  onExpandSidebar,
   activeAdminSectionId = null,
   onSelectAdminSection,
 }: ERPSidebarProps) {
@@ -203,41 +249,80 @@ export default function ERPSidebar({
     <motion.aside
       animate={{ width: isExpanded ? 236 : 86 }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-      className={`shrink-0 bg-white border-r border-stone-200/90 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.02)] overflow-x-hidden ${
+      className={`shrink-0 bg-[#610000] border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
         isExpanded ? 'w-[236px] min-w-[236px]' : 'w-[86px] min-w-[86px]'
       }`}
     >
       {/* ── TOP HEADER ───────────────────────────────────────────── */}
       <div className="pt-1 pb-3 px-2 flex flex-col items-center border-b border-stone-100 w-full transition-all">
         {isExpanded ? (
-          <div className="w-full flex items-center px-1">
-            <div className="flex items-center gap-2.5 overflow-hidden">
+          isStudent ? (
+            <div className="w-full flex flex-col items-center px-1">
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-[77px] h-[77px] rounded-full border border-white/20 overflow-hidden shadow-xs"
+                onClick={onExpandSidebar}
+                aria-label="View Rahul Sharma's profile"
+                aria-expanded="true"
+                title="Rahul Sharma"
+              >
+                <img src="/student-profile.png?v=1" alt="Rahul Sharma" className="w-full h-full object-cover" />
+              </motion.button>
+              <div className="mt-2 text-center leading-tight">
+                <span className="block text-xs font-black text-white">Rahul Sharma</span>
+                <span className="mt-1 block text-[10px] font-bold text-[#FFE59A]">23CSE001</span>
+              </div>
+              <div className="mt-3 w-full border-t border-white/20 pt-2 text-center leading-relaxed">
+                <span className="block text-[11px] font-bold text-white/90">PUC - Computer Science</span>
+                <span className="block text-[11px] font-bold text-white/90">JEE/NEET</span>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full flex items-center px-1">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="cursor-pointer w-9 h-9 rounded-[20%] bg-white/10 border border-white/10 p-1 flex items-center justify-center shadow-xs transition shrink-0"
+                  onClick={() => onSelectModule('dashboard')}
+                  title="Dashboard"
+                >
+                  <img src="/logo.png?v=3" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                </motion.div>
+                <div className="leading-tight text-left overflow-hidden">
+                  <span className="font-black text-xs text-white tracking-tight block truncate uppercase">Sir MV PU College</span>
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="flex w-full justify-center">
+            {isStudent ? (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-[43px] h-[43px] rounded-full border border-white/20 overflow-hidden shadow-xs"
+                onClick={onExpandSidebar}
+                aria-label="Open Rahul Sharma's profile"
+                aria-expanded="false"
+                title="Open student profile"
+              >
+                <img src="/student-profile.png?v=1" alt="Rahul Sharma" className="w-full h-full object-cover" />
+              </motion.button>
+            ) : (
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="cursor-pointer w-9 h-9 rounded-2xl bg-white border border-stone-200 p-1 flex items-center justify-center shadow-xs hover:border-[#650000] transition shrink-0"
+                className="cursor-pointer w-9 h-9 rounded-[20%] bg-white/10 border border-white/10 p-1 flex items-center justify-center shadow-xs transition"
                 onClick={() => onSelectModule('dashboard')}
                 title="Dashboard"
               >
-                <img src="/logo.png" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <img src="/logo.png?v=3" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               </motion.div>
-              <div className="leading-tight text-left overflow-hidden">
-                <span className="font-black text-xs text-stone-900 tracking-tight block truncate uppercase">Sir MV PU College</span>
-                <span className="text-[9px] font-black text-[#A60000] uppercase tracking-wider block">Campus ERP</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex w-full justify-center">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="cursor-pointer w-9 h-9 rounded-2xl bg-white border border-stone-200 p-1 flex items-center justify-center shadow-xs hover:border-[#650000] transition"
-              onClick={() => onSelectModule('dashboard')}
-              title="Dashboard"
-            >
-              <img src="/logo.png" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-            </motion.div>
+            )}
           </div>
         )}
       </div>
@@ -254,9 +339,6 @@ export default function ERPSidebar({
               isExpanded={isExpanded}
               onSelectModule={onSelectModule}
             />
-
-            {/* Thin divider */}
-            <div className="border-t border-stone-100 my-1" />
 
             {/* 5 collapsible sections */}
             {ADMIN_NAV_SECTIONS.map((section) => (
@@ -302,12 +384,12 @@ export default function ERPSidebar({
               whileHover={{ scale: 1.15, rotate: 180 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => onSelectModule('dashboard')}
-              className="p-1.5 rounded-full hover:bg-red-50 text-stone-400 hover:text-red-600 transition"
+              className="p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] transition"
               title="Return to Dashboard"
             >
               <IconVNavPower size={20} />
             </motion.button>
-            <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider">Sir MV ERP v2.4</span>
+            <span className="text-[10px] font-black text-[#FFE59A] uppercase tracking-wider">Sir MV ERP v2.4</span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1">
@@ -315,12 +397,11 @@ export default function ERPSidebar({
               whileHover={{ scale: 1.15, rotate: 180 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => onSelectModule('dashboard')}
-              className="p-1.5 rounded-full hover:bg-red-50 text-stone-400 hover:text-red-600 transition"
+              className="p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] transition"
               title="Return to Dashboard"
             >
-              <IconVNavPower size={24} />
+              <IconVNavPower size={29} />
             </motion.button>
-            <span className="text-[9px] font-black text-stone-400 uppercase tracking-tighter">v2.4 ERP</span>
           </div>
         )}
       </div>

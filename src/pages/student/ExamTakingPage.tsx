@@ -230,7 +230,7 @@ export default function ExamTakingPage() {
         style={{ background: 'linear-gradient(135deg, #500000 0%, #650000 70%, #A60000 100%)' }}
       >
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Sir MV" className="h-8 w-8 object-contain rounded" />
+          <img src="/logo.png?v=3" alt="Sir MV" className="h-8 w-8 object-contain rounded" />
           <div>
             <h1 className="font-extrabold text-sm md:text-base leading-tight">
               {examName}

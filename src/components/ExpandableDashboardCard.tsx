@@ -11,13 +11,12 @@ export interface CardPreviewItem {
 export interface DashboardCardConfig {
   id: string;
   title: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  iconSrc: string;
   desc: string;
   count: string;
   badgeBg: string;
   badgeColor: string;
   previews: CardPreviewItem[];
-  actionLabel: string;
   onAction: () => void;
 }
 
@@ -26,7 +25,6 @@ interface ExpandableDashboardCardProps {
   isExpanded: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
-  onToggleTap: () => void;
 }
 
 export default function ExpandableDashboardCard({
@@ -34,35 +32,36 @@ export default function ExpandableDashboardCard({
   isExpanded,
   onHoverStart,
   onHoverEnd,
-  onToggleTap,
 }: ExpandableDashboardCardProps) {
-  const Icon = card.icon;
-
   return (
     // Outer slot maintains exact grid cell footprint so sibling cards and lower rows NEVER move or stretch!
-    <div className="relative min-h-[185px] w-full">
-      <motion.div
-        onMouseEnter={onHoverStart}
-        onMouseLeave={onHoverEnd}
-        onClick={onToggleTap}
+    <div className="relative h-[218px] w-full">
+      <motion.button
+        type="button"
+        aria-label={`Open ${card.title} module`}
+        data-dashboard-card="student"
+        onPointerEnter={onHoverStart}
+        onPointerLeave={onHoverEnd}
+        onFocus={onHoverStart}
+        onBlur={onHoverEnd}
+        onClick={() => {
+          onHoverEnd();
+          card.onAction();
+        }}
         animate={{
-          scale: isExpanded ? [1, 1.018, 1] : 1,
-          y: isExpanded ? [0, -4, 0] : 0,
           borderColor: isExpanded ? '#E5BD55' : 'rgba(229, 231, 235, 0.9)',
           boxShadow: isExpanded
             ? '0 25px 45px -10px rgba(101, 0, 0, 0.2), 0 10px 25px -5px rgba(229, 189, 85, 0.28)'
             : '0 2px 10px -2px rgba(0, 0, 0, 0.05)',
         }}
         transition={{
-          scale: { duration: 0.32, times: [0, 0.25, 1], ease: 'easeOut' },
-          y: { duration: 0.32, times: [0, 0.25, 1], ease: 'easeOut' },
           borderColor: { duration: 0.2 },
           boxShadow: { duration: 0.2 },
         }}
-        className={`bg-white rounded-3xl p-5 md:p-6 border cursor-pointer select-none overflow-hidden flex flex-col justify-between ${
+        className={`group appearance-none bg-white rounded-3xl border cursor-pointer select-none overflow-hidden flex h-full w-full flex-col justify-start text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000] ${
           isExpanded
-            ? 'absolute top-0 left-0 right-0 z-30'
-            : 'relative w-full h-full'
+            ? 'absolute inset-0 z-30 px-4 pt-3 pb-10'
+            : 'relative p-5 md:p-6'
         }`}
         style={{
           borderWidth: isExpanded ? '2px' : '1px',
@@ -80,24 +79,17 @@ export default function ExpandableDashboardCard({
 
         {/* Main Visible Card Face */}
         <div>
-          <div className="flex items-center justify-between mb-3.5">
+          <div className={`flex items-center justify-between ${isExpanded ? 'mb-0' : 'mb-3.5'}`}>
             {/* Animated Icon with subtle bounce/rotation ONLY on the hovered card */}
-            <motion.div
-              animate={
-                isExpanded
-                  ? {
-                      rotate: [0, -5, 5, 0],
-                      scale: [1, 1.108, 1],
-                      backgroundColor: '#FFE59A',
-                      color: '#650000',
-                    }
-                  : { rotate: 0, scale: 1, backgroundColor: '#FFF0F0', color: '#650000' }
-              }
-              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-xs"
-            >
-              <Icon size={22} />
-            </motion.div>
+            <div className={`flex items-center justify-center ${isExpanded ? 'h-12 w-12' : 'h-16 w-16'}`}>
+              <img
+                src={card.iconSrc}
+                alt=""
+                className={`h-full w-full object-contain transition-[filter] ${
+                  isExpanded ? 'drop-shadow-[0_0_8px_#E6C28F]' : ''
+                } group-focus-visible:drop-shadow-[0_0_8px_#E6C28F]`}
+              />
+            </div>
 
             <span
               className="text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-black/5"
@@ -118,7 +110,7 @@ export default function ExpandableDashboardCard({
             </motion.span>
           </h3>
 
-          <p className="text-xs text-stone-500 mt-1 leading-relaxed font-medium">
+          <p className={`text-xs text-stone-500 ${isExpanded ? 'mt-0.5 leading-4 line-clamp-1' : 'mt-1 leading-relaxed'} font-medium`}>
             {card.desc}
           </p>
         </div>
@@ -136,17 +128,17 @@ export default function ExpandableDashboardCard({
                 damping: 28,
                 opacity: { duration: 0.18 },
               }}
-              className="overflow-hidden mt-3.5 pt-3 border-t border-[#E5BD55]/40 space-y-2.5"
+              className="mt-3 overflow-hidden pt-1 border-t border-[#E5BD55]/40 space-y-0.5"
             >
-              <div className="space-y-1.5 text-xs">
+              <div className="space-y-4">
                 {card.previews.map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between py-0.5 text-stone-700"
+                    className="flex items-center justify-between gap-2 text-stone-700"
                   >
-                    <span className="text-[11px] text-stone-500">{item.label}:</span>
+                    <span className="truncate text-[11px] leading-4 text-stone-500">{item.label}:</span>
                     <span
-                      className={`font-bold text-[11px] ${
+                      className={`max-w-[65%] truncate text-[11px] leading-4 font-bold ${
                         item.highlight ? 'text-[#A60000]' : 'text-stone-900'
                       }`}
                     >
@@ -156,36 +148,25 @@ export default function ExpandableDashboardCard({
                 ))}
               </div>
 
-              {/* Action Button inside Expanded Panel with iOS Physics */}
-              <motion.button
-                whileHover={{
-                  scale: 1.02,
-                  boxShadow: '0 4px 15px rgba(166, 0, 0, 0.35)',
-                  backgroundColor: '#A60000',
-                }}
-                whileTap={{ scale: 0.96 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  card.onAction();
-                }}
-                className="w-full mt-2 py-2 px-3 rounded-full text-xs font-bold text-white shadow-xs flex items-center justify-center gap-1.5 transition-colors"
-                style={{ backgroundColor: '#650000' }}
-              >
-                <span>{card.actionLabel}</span>
-                <ArrowRight size={13} />
-              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Subtle indicator bar for non-expanded state */}
-        {!isExpanded && (
-          <div className="mt-3.5 pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] font-bold text-[#A60000] opacity-80">
-            <span>Hover to preview</span>
-            <ArrowRight size={13} />
-          </div>
-        )}
-      </motion.div>
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="absolute inset-x-0 bottom-0 flex h-10 items-center justify-center gap-2 bg-[#A60000] text-xs font-black text-white"
+            >
+              <span>Open</span>
+              <ArrowRight size={15} className={`transition-transform ${isExpanded ? 'translate-x-1' : ''}`} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
     </div>
   );
 }

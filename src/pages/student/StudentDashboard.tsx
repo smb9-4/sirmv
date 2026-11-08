@@ -33,7 +33,7 @@ export default function StudentDashboard() {
     {
       id: 'announcements',
       title: 'ANNOUNCEMENTS',
-      icon: Bell,
+      iconSrc: '/student-section-icons/announcements.png',
       desc: 'Official circulars and notices from Principal, HOD, and faculty.',
       count: unreadAnnouncements.length > 0 ? `${unreadAnnouncements.length} unread` : 'All read',
       path: '/student/announcements',
@@ -43,7 +43,7 @@ export default function StudentDashboard() {
     {
       id: 'exams',
       title: 'EXAMS',
-      icon: ClipboardList,
+      iconSrc: '/student-section-icons/exams.png',
       desc: 'Live college examinations & competitive practice mock tests.',
       count: '3 Available',
       path: '/student/exams',
@@ -53,7 +53,7 @@ export default function StudentDashboard() {
     {
       id: 'notes',
       title: 'NOTES',
-      icon: BookOpen,
+      iconSrc: '/student-section-icons/notes.png',
       desc: 'Subject lecture notes, unit-wise documents & lecture slides.',
       count: '8 Documents',
       path: '/student/notes',
@@ -63,7 +63,7 @@ export default function StudentDashboard() {
     {
       id: 'materials',
       title: 'STUDY MATERIALS',
-      icon: FolderOpen,
+      iconSrc: '/student-section-icons/materials.png',
       desc: 'Video lectures, worksheets, and competitive exam resources.',
       count: '8 Resources',
       path: '/student/materials',
@@ -73,7 +73,7 @@ export default function StudentDashboard() {
     {
       id: 'results',
       title: 'RESULTS',
-      icon: ChartNoAxesCombined,
+      iconSrc: '/student-section-icons/results.png',
       desc: 'Performance analytics, scores, and question-by-question review.',
       count: '8 Test Records',
       path: '/student/results',
@@ -82,18 +82,28 @@ export default function StudentDashboard() {
     },
     {
       id: 'timetable',
-      title: 'TIMETABLE / CALENDAR',
-      icon: CalendarDays,
-      desc: 'Daily lecture schedule, lab slots, exam dates & college events.',
-      count: 'Sem 5 Schedule',
+      title: 'TIMETABLE',
+      iconSrc: '/student-section-icons/timetable.png',
+      desc: 'Daily lectures, practical periods, and subject schedule.',
+      count: 'Weekly Schedule',
       path: '/student/timetable',
+      badgeColor: '#F3F3F3',
+      textColor: '#343434',
+    },
+    {
+      id: 'calendar',
+      title: 'CALENDAR',
+      iconSrc: '/student-section-icons/timetable.png',
+      desc: 'Monthly JEE, NEET, and theory exam schedule.',
+      count: 'Weekly Exams',
+      path: '/student/calendar',
       badgeColor: '#F3F3F3',
       textColor: '#343434',
     },
     {
       id: 'complaints',
       title: 'COMPLAINT BOX',
-      icon: MessageSquare,
+      iconSrc: '/student-section-icons/complaints.png',
       desc: 'Submit grievances for academics, lab facilities, or infrastructure.',
       count: '2 Submitted',
       path: '/student/complaints',
@@ -103,7 +113,7 @@ export default function StudentDashboard() {
     {
       id: 'attendance',
       title: 'ATTENDANCE',
-      icon: CalendarCheck,
+      iconSrc: '/student-section-icons/attendance.png',
       desc: 'Subject-wise class attendance, warning metrics & monthly logs.',
       count: `${overallAttendance}% Overall`,
       path: '/student/attendance',
@@ -130,7 +140,7 @@ export default function StudentDashboard() {
         >
           {/* Decorative crest background */}
           <div className="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10 pointer-events-none">
-            <img src="/logo.png" alt="" className="w-80 h-80 object-contain" />
+            <img src="/logo.png?v=3" alt="" className="w-80 h-80 object-contain" />
           </div>
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -245,7 +255,6 @@ export default function StudentDashboard() {
         {/* The 8 Main Dashboard Cards - Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {dashboardCards.map((card) => {
-            const Icon = card.icon;
             return (
               <div
                 key={card.id}
@@ -260,14 +269,8 @@ export default function StudentDashboard() {
 
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 group-hover:scale-110 shadow-sm"
-                      style={{
-                        backgroundColor: '#FFF0F0',
-                        color: '#650000',
-                      }}
-                    >
-                      <Icon size={24} className="group-hover:text-crimson transition-colors" />
+                    <div className="w-16 h-16 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
+                      <img src={card.iconSrc} alt="" className="w-full h-full object-contain" />
                     </div>
 
                     <span
@@ -286,9 +289,9 @@ export default function StudentDashboard() {
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-institutional-border flex items-center justify-between text-xs font-bold text-crimson group-hover:text-maroon-deep transition-colors">
-                  <span>Open Module</span>
-                  <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
+                <div className="absolute inset-x-0 bottom-0 flex h-11 translate-y-full items-center justify-center gap-2 bg-[#A60000] text-xs font-bold text-white opacity-0 transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100">
+                  <span>Click to Open</span>
+                  <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
               </div>
             );

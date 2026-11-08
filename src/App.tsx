@@ -51,6 +51,7 @@ export default function App() {
             <Route path="/student/notes" element={<ERPPortalPage initialRole="student" initialModule="notes" />} />
             <Route path="/student/materials" element={<ERPPortalPage initialRole="student" initialModule="materials" />} />
             <Route path="/student/timetable" element={<ERPPortalPage initialRole="student" initialModule="timetable" />} />
+            <Route path="/student/calendar" element={<ERPPortalPage initialRole="student" initialModule="college_calendar" />} />
             <Route path="/student/attendance" element={<ERPPortalPage initialRole="student" initialModule="attendance" />} />
             <Route path="/student/complaints" element={<ERPPortalPage initialRole="student" initialModule="complaints" />} />
             <Route path="/student/*" element={<ERPPortalPage initialRole="student" />} />

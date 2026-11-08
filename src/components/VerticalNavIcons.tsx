@@ -635,19 +635,6 @@ export function IconAdmBatteryHealth({ size = 32, className = '' }: IconProps) {
   );
 }
 
-// Student Mapping – person + tablet link
-export function IconAdmStudentMapping({ size = 32, className = '' }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <circle cx="9" cy="10" r="4" fill="#EDE9FE" stroke="#7C3AED" strokeWidth="1.8"/>
-      <path d="M4 22c0-3 2-5 5-5s5 2 5 5" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round"/>
-      <line x1="17" y1="16" x2="21" y2="16" stroke="#7C3AED" strokeWidth="1.5" strokeDasharray="2 2"/>
-      <rect x="21" y="10" width="8" height="12" rx="1.5" fill="#EDE9FE" stroke="#7C3AED" strokeWidth="1.8"/>
-      <rect x="23" y="20" width="4" height="1.5" rx="0.75" fill="#7C3AED"/>
-    </svg>
-  );
-}
-
 // Device Inventory – clipboard with checklist
 export function IconAdmDeviceInventory({ size = 32, className = '' }: IconProps) {
   return (

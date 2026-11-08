@@ -37,7 +37,7 @@ export default function StudentNav() {
     <header className="sticky top-0 z-50 shadow-header" style={{ background: 'linear-gradient(135deg, #500000 0%, #650000 60%, #7a0000 100%)' }}>
       {/* Top bar */}
       <div className="flex items-center gap-3 px-4 py-2.5">
-        <img src="/logo.png" alt="Sir MV" className="h-9 w-9 object-contain rounded" />
+        <img src="/logo.png?v=3" alt="Sir MV" className="h-9 w-9 object-contain rounded" />
         <div className="hidden md:block">
           <span className="text-white font-bold text-sm">SIR MV GROUP OF INSTITUTIONS</span>
           <p className="text-xs" style={{ color: '#FFE59A' }}>Student Academic Portal</p>

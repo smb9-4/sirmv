@@ -1,4 +1,12 @@
 @font-face {
+  font-family: 'Great Vibes';
+  src: url('/fonts/GreatVibes-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Lucida Sans Unicode Regular';
   src: url('/fonts/LucidaSansUnicode.ttf') format('truetype'),
        local('Lucida Sans Unicode Regular'),
@@ -39,6 +47,14 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     font-synthesis: weight style;
+  }
+
+  .student-dashboard-welcome-name {
+    font-family: 'Great Vibes', cursive !important;
+    font-size: 1.15em;
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+    -webkit-text-stroke: 0 !important;
   }
 
   /* HEADLINES IN EVERY SECTION & ANY PART SHOULD BE IN BOLD LETTERS */

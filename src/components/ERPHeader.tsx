@@ -43,9 +43,11 @@ export const ROLE_PROFILES: Record<'admin' | 'student', RoleProfile> = {
 interface ERPHeaderProps {
   currentRole: UserRoleType;
   onRoleChange: (newRole: UserRoleType) => void;
+  onToggleSidebar?: () => void;
+  isSidebarExpanded?: boolean;
 }
 
-export default function ERPHeader({ currentRole, onRoleChange }: ERPHeaderProps) {
+export default function ERPHeader({ currentRole, onRoleChange, onToggleSidebar, isSidebarExpanded }: ERPHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,24 +67,32 @@ export default function ERPHeader({ currentRole, onRoleChange }: ERPHeaderProps)
   }, []);
 
   return (
-    <header className="w-full bg-white border-b border-stone-200/80 px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-      {/* Left side: College Logo & Campus ERP Badge */}
+    <header className="w-full px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ backgroundColor: '#610000' }}>
+      {/* Left side: Menu and College Logo */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center p-1 shadow-sm">
-          <img src="/logo.png" alt="Sir MV" className="w-full h-full object-contain" />
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          title={isSidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          className="w-9 h-9 rounded-[20%] border border-white/20 bg-white/5 hover:bg-white/10 flex items-center justify-center shadow-sm transition-all"
+        >
+          <span className="flex flex-col items-center justify-center gap-1.5">
+            <span className="block w-4 h-0.5 rounded-full bg-white" />
+            <span className="block w-4 h-0.5 rounded-full bg-white" />
+            <span className="block w-4 h-0.5 rounded-full bg-white" />
+          </span>
+        </button>
+
+        <div className="w-9 h-9 rounded-[20%] bg-white/10 border border-white/15 overflow-hidden flex items-center justify-center p-1 shadow-sm">
+          <img src="/logo.png?v=3" alt="Sir MV" className="w-full h-full object-contain" />
         </div>
 
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-black text-xs md:text-sm text-stone-900 tracking-tight uppercase">
+            <span className="font-black text-xs md:text-sm text-white tracking-tight uppercase">
               SIR MV PU COLLEGE
             </span>
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200">
-              CAMPUS ERP
-            </span>
-          </div>
-          <div className="text-[11px] text-[#0284C7] font-bold flex items-center gap-1">
-            <span>🏛️ Shivamogga PU Campus</span>
           </div>
         </div>
       </div>
@@ -90,7 +100,7 @@ export default function ERPHeader({ currentRole, onRoleChange }: ERPHeaderProps)
       {/* Right side: Notification & Role Switcher Dropdown */}
       <div className="flex items-center gap-3">
         {/* Notification Bell */}
-        <button className="w-9 h-9 rounded-full border border-stone-200/80 hover:bg-stone-100 text-stone-600 flex items-center justify-center transition apple-button">
+        <button className="w-9 h-9 rounded-full border border-white/20 hover:bg-white/10 text-white flex items-center justify-center transition apple-button">
           <Bell size={16} />
         </button>
 
@@ -98,7 +108,7 @@ export default function ERPHeader({ currentRole, onRoleChange }: ERPHeaderProps)
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((o) => !o)}
-            className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-2xl border border-stone-200/90 hover:bg-stone-50 transition-all apple-button shadow-sm"
+            className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 transition-all apple-button shadow-sm"
           >
             {/* Initial Avatar */}
             <div
@@ -110,15 +120,15 @@ export default function ERPHeader({ currentRole, onRoleChange }: ERPHeaderProps)
 
             {/* Name & Role */}
             <div className="text-left hidden sm:block">
-              <div className="text-xs font-black text-stone-900 leading-tight">
+              <div className="text-xs font-black text-white leading-tight">
                 {activeProfile.title}
               </div>
-              <div className="text-[10px] font-black text-[#A60000] uppercase tracking-wider">
+              <div className="text-[10px] font-black text-[#FFE59A] uppercase tracking-wider">
                 {activeProfile.roleBadge}
               </div>
             </div>
 
-            <ChevronDown size={14} className="text-stone-400 ml-0.5" />
+            <ChevronDown size={14} className="text-white/80 ml-0.5" />
           </button>
 
           {/* Role Switcher Dropdown Menu: ONLY Student Section and Admin/Tab Management */}
