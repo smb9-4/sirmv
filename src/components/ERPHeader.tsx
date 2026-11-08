@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, Check, ShieldCheck, User, Users, GraduationCap, Sparkles, LogOut, Tablet } from 'lucide-react';
+import type { Announcement } from '../types';
 
 export type UserRoleType = 'admin' | 'student' | 'super_admin' | 'principal' | 'teacher';
 
@@ -45,11 +46,22 @@ interface ERPHeaderProps {
   onRoleChange: (newRole: UserRoleType) => void;
   onToggleSidebar?: () => void;
   isSidebarExpanded?: boolean;
+  unreadAnnouncements: Announcement[];
+  onOpenAnnouncement: (announcement: Announcement) => void;
 }
 
-export default function ERPHeader({ currentRole, onRoleChange, onToggleSidebar, isSidebarExpanded }: ERPHeaderProps) {
+export default function ERPHeader({
+  currentRole,
+  onRoleChange,
+  onToggleSidebar,
+  isSidebarExpanded,
+  unreadAnnouncements,
+  onOpenAnnouncement,
+}: ERPHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   // Normalize any legacy role (principal/super_admin/teacher) to 'admin'
   const normalizedRole: 'admin' | 'student' = currentRole === 'student' ? 'student' : 'admin';
@@ -58,6 +70,9 @@ export default function ERPHeader({ currentRole, onRoleChange, onToggleSidebar, 
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
@@ -99,10 +114,77 @@ export default function ERPHeader({ currentRole, onRoleChange, onToggleSidebar, 
 
       {/* Right side: Notification & Role Switcher Dropdown */}
       <div className="flex items-center gap-3">
-        {/* Notification Bell */}
-        <button className="w-9 h-9 rounded-full border border-white/20 hover:bg-white/10 text-white flex items-center justify-center transition apple-button">
-          <Bell size={16} />
-        </button>
+        {normalizedRole === 'student' && (
+          <>
+            {/* Notification Bell */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((open) => !open)}
+                aria-label={unreadAnnouncements.length > 0 ? `Notifications, ${unreadAnnouncements.length} unread` : 'Notifications'}
+                aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
+                title="Notifications"
+                className="relative w-9 h-9 rounded-full border border-white/20 hover:bg-white/10 text-white flex items-center justify-center transition apple-button"
+              >
+                <Bell size={16} />
+                {unreadAnnouncements.length > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -right-1 -top-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-black leading-[18px] text-center shadow-sm"
+                  >
+                    {unreadAnnouncements.length > 99 ? '99+' : unreadAnnouncements.length}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div
+                  role="dialog"
+                  aria-label="Unread messages"
+                  className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-stone-200 bg-white text-stone-900 shadow-[0_20px_50px_rgba(0,0,0,0.2)]"
+                >
+                  <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
+                    <h2 className="text-sm font-black">Messages</h2>
+                    <span className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-700">
+                      {unreadAnnouncements.length} unread
+                    </span>
+                  </div>
+
+                  {unreadAnnouncements.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-xs font-medium text-stone-500">You’re all caught up.</p>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto p-2">
+                      {unreadAnnouncements.map((announcement) => (
+                        <button
+                          key={announcement.id}
+                          type="button"
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            onOpenAnnouncement(announcement);
+                          }}
+                          className="block w-full rounded-xl px-3 py-2.5 text-left transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A60000]"
+                        >
+                          <span className="block truncate text-[10px] font-bold text-[#A60000]">
+                            {announcement.senderName} · {announcement.designation}
+                          </span>
+                          <span className="mt-0.5 block text-xs font-extrabold text-stone-900">
+                            {announcement.title}
+                          </span>
+                          <span className="mt-1 block text-[11px] leading-relaxed text-stone-600">
+                            {announcement.message.length > 100
+                              ? `${announcement.message.slice(0, 100)}…`
+                              : announcement.message}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Profile Dropdown Menu Trigger */}
         <div className="relative" ref={dropdownRef}>
@@ -154,6 +236,7 @@ export default function ERPHeader({ currentRole, onRoleChange, onToggleSidebar, 
                       onClick={() => {
                         onRoleChange(roleKey);
                         setDropdownOpen(false);
+                        setNotificationsOpen(false);
                       }}
                       className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all ${
                         isSelected

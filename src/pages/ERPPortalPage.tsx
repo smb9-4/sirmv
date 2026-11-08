@@ -48,6 +48,7 @@ import {
   MessageSquare, CalendarCheck, Check, Send, RotateCcw, Play, Eye, ArrowRight
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
+import type { Announcement } from '../types';
 
 const ADMIN_SECTION_DESCRIPTIONS: Record<string, string> = {
   device_admin: 'Manage student tablets, device inventory, serial specifications, and student device health.',
@@ -257,6 +258,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   // REQUIREMENT: Currently when I open the website, it should default open with PRINCIPAL page
   const [currentRole, setCurrentRole] = useState<UserRoleType>(getInitialRole);
   const [activeModule, setActiveModule] = useState<ERPModuleId>(getInitialModule);
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentAnalysisRecord | null>(null);
 
   // Signature Academic Loader state
@@ -310,7 +312,21 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const [academicCalendarMonth, setAcademicCalendarMonth] = useState(() => new Date(2026, 10, 1));
 
   // Portal Context
-  const { announcements, exams, results, notes, studyMaterials, complaints, subjectAttendance } = usePortal();
+  const {
+    announcements,
+    markAnnouncementAsRead,
+    exams,
+    results,
+    notes,
+    studyMaterials,
+    complaints,
+    subjectAttendance,
+  } = usePortal();
+  const visibleAnnouncements = currentRole === 'student'
+    ? announcements.filter((announcement) => announcement.targetRole !== 'professor')
+    : announcements;
+  const unreadAnnouncements = visibleAnnouncements.filter((announcement) => !announcement.isRead);
+  const selectedAnnouncement = visibleAnnouncements.find((announcement) => announcement.id === selectedAnnouncementId);
   const attendanceTrendPeriod = attendancePeriod === 'overall' ? 'weekly' : attendancePeriod;
   const attendanceTrendData = getAttendanceTrendData(attendanceTrendPeriod);
   const allTimeAttendedClasses = subjectAttendance.reduce((total, subject) => total + subject.attendedClasses, 0);
@@ -362,6 +378,16 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     setActiveModule('dashboard');
     setExpandedCardId(null);
     setActiveAdminSectionId(null);
+    setHoveredAdminSectionId(null);
+    setHoveredAdminModuleId(null);
+  };
+
+  const handleOpenAnnouncement = (announcement: Announcement) => {
+    markAnnouncementAsRead(announcement.id);
+    setSelectedAnnouncementId(announcement.id);
+    setActiveModule('announcements');
+    setActiveAdminSectionId(null);
+    setExpandedCardId(null);
     setHoveredAdminSectionId(null);
     setHoveredAdminModuleId(null);
   };
@@ -568,6 +594,8 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           onRoleChange={handleRoleChange}
           onToggleSidebar={() => setSidebarExpanded((prev) => !prev)}
           isSidebarExpanded={sidebarExpanded}
+          unreadAnnouncements={unreadAnnouncements}
+          onOpenAnnouncement={handleOpenAnnouncement}
         />
       </div>
 
@@ -1689,6 +1717,23 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       <AnimatedCounter value={PUC_ANNOUNCEMENTS.length} duration={800} /> Official Circulars
                     </span>
                   </div>
+
+                  {selectedAnnouncement && (
+                    <article className="apple-card border-l-4 border-l-[#A60000] p-5 md:p-6">
+                      <p className="text-[10px] font-black uppercase tracking-wide text-[#A60000]">
+                        Message from {selectedAnnouncement.senderName} · {selectedAnnouncement.designation}
+                      </p>
+                      <h3 className="mt-1 text-base font-extrabold text-stone-900">
+                        {selectedAnnouncement.title}
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-stone-600">
+                        {selectedAnnouncement.message}
+                      </p>
+                      <p className="mt-3 text-[10px] font-semibold text-stone-400">
+                        {selectedAnnouncement.department} · {new Date(selectedAnnouncement.date).toLocaleString()}
+                      </p>
+                    </article>
+                  )}
 
                   {/* Filter Bar: Category Tabs (Principal / HOD / Teacher / All) */}
                   <div className="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
