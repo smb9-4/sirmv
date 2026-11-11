@@ -7,6 +7,7 @@ import ERPHeader, { UserRoleType, ROLE_PROFILES } from '../components/ERPHeader'
 import StudentDetailModal from '../components/StudentDetailModal';
 import ExamMCQReviewModal from '../components/ExamMCQReviewModal';
 import AdminModuleView from '../components/AdminModuleView';
+import AdminParentConnectSection from '../components/AdminParentConnectSection';
 import { StudentParentConnectSection } from '../calling/components/StudentParentConnectSection';
 import { InCallScreen } from '../calling/components/InCallScreen';
 import { IncomingCallModal } from '../calling/components/IncomingCallModal';
@@ -63,6 +64,7 @@ const ADMIN_ITEM_BADGES: Partial<Record<ERPModuleId, string>> = {
   adm_os_updates: '9',
   adm_student_reports: '100',
   adm_maintenance: '4 ⚠',
+  adm_parent_connect: '100',
 };
 
 const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
@@ -83,6 +85,7 @@ const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
   adm_app_deployment: 'Install approved apps across tablets.',
   adm_os_updates: 'Manage operating system updates.',
   adm_audit_logs: 'Review administrative actions and history.',
+  adm_parent_connect: 'Timing maintenance, parent contact verification, talk-time records and calling control.',
 };
 
 const STUDENT_SECTION_TITLES: Partial<Record<ERPModuleId, string>> = {
@@ -3399,9 +3402,13 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               )}
 
               {/* ─────────────────────────────────────────────────────────────
-                  ADMIN / TAB MANAGEMENT MODULE VIEWS (Sections 1-5)
+                  ADMIN / TAB MANAGEMENT MODULE VIEWS (Sections 1-6)
                   ───────────────────────────────────────────────────────────── */}
-              {activeModule.startsWith('adm_') && (
+              {activeModule === 'adm_parent_connect' && (
+                <AdminParentConnectSection sidebarWidth={sidebarWidth} />
+              )}
+
+              {activeModule.startsWith('adm_') && activeModule !== 'adm_parent_connect' && (
                 <AdminModuleView
                   moduleId={activeModule}
                   onBack={() => setActiveModule('dashboard')}

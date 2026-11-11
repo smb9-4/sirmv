@@ -37,6 +37,7 @@ import {
   IconAdmMaintenance,
   IconAdmNotifications,
   IconAdmConfiguration,
+  IconAdmParentConnect,
 } from './VerticalNavIcons';
 
 export type ERPModuleId =
@@ -95,7 +96,9 @@ export type ERPModuleId =
   // Section 5: Reports & System Intelligence
   | 'adm_overall_reports'
   | 'adm_maintenance'
-  | 'adm_configuration';
+  | 'adm_configuration'
+  // Section 6: Parent Connect & Calling Management
+  | 'adm_parent_connect';
 
 export type UserRoleType = 'admin' | 'student' | 'super_admin' | 'principal' | 'teacher';
 
@@ -192,6 +195,18 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { id: 'adm_overall_reports',  label: 'Overall Reports',   icon: IconAdmOverallReports,  colorAccent: '#065F46' },
       { id: 'adm_maintenance',      label: 'Maintenance',       icon: IconAdmMaintenance,     colorAccent: '#92400E' },
       { id: 'adm_configuration',    label: 'Configuration',     icon: IconAdmConfiguration,   colorAccent: '#475569' },
+    ],
+  },
+  {
+    sectionId: 'parent_connect',
+    sectionLabel: 'Parent Connect',
+    sectionNumber: 6,
+    sectionColor: '#059669',
+    sectionIcon: IconAdmParentConnect,
+    sectionIconSrc: '/student-section-icons/parent-connect.png',
+    sidebarIconSrc: '/student-section-icons/parent-connect.png',
+    items: [
+      { id: 'adm_parent_connect', label: 'Parent Connect', icon: IconAdmParentConnect, colorAccent: '#059669', badge: 'TIMING' },
     ],
   },
 ];

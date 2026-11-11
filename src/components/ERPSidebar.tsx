@@ -36,6 +36,7 @@ const SECTION_ICON_IMAGES: Partial<Record<ERPModuleId, string>> = {
   complaints: '/student-section-icons/complaints.png',
   attendance: '/student-section-icons/attendance.png',
   parent_connect: '/student-section-icons/parent-connect.png',
+  adm_parent_connect: '/student-section-icons/parent-connect.png',
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────

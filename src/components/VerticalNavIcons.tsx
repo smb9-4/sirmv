@@ -892,3 +892,17 @@ export function IconAdmConfiguration({ size = 32, className = '' }: IconProps) {
     </svg>
   );
 }
+
+// Parent Connect – phone call & parent/student shield
+export function IconAdmParentConnect({ size = 32, className = '' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <rect x="3" y="3" width="26" height="26" rx="7" fill="#DCFCE7" stroke="#10B981" strokeWidth="1.8" />
+      <path
+        d="M10 12a2 2 0 012-2h1.2a1 1 0 01.95.68l.8 2.4a1 1 0 01-.24 1.05l-1.1 1.1a9 9 0 004.26 4.26l1.1-1.1a1 1 0 011.05-.24l2.4.8a1 1 0 01.68.95V21a2 2 0 01-2 2A12 12 0 019 11v1z"
+        fill="#10B981"
+      />
+      <circle cx="21" cy="11" r="3" fill="#047857" />
+    </svg>
+  );
+}
