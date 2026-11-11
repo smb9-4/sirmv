@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconVNavPower, IconVNavDashboard } from './VerticalNavIcons';
-import { ChevronRight } from 'lucide-react';
 import {
   ERPModuleId,
   UserRoleType,
@@ -18,7 +17,6 @@ interface ERPSidebarProps {
   currentRole?: UserRoleType;
   isExpanded?: boolean;
   isLocked?: boolean;
-  onExpandSidebar?: () => void;
   onHoverChange?: (hovered: boolean) => void;
   onToggleLock?: () => void;
   activeAdminSectionId?: string | null;
@@ -45,11 +43,13 @@ function FlatNavItem({
   item,
   isActive,
   isExpanded,
+  labelsBelowIcon = false,
   onSelectModule,
 }: {
   item: NavItemConfig;
   isActive: boolean;
   isExpanded: boolean;
+  labelsBelowIcon?: boolean;
   onSelectModule: (id: ERPModuleId) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -68,12 +68,14 @@ function FlatNavItem({
         transition={{ type: 'spring', stiffness: 450, damping: 24, mass: 0.5 }}
         className={`group relative transition-all duration-200 cursor-pointer ${
           isExpanded
-            ? 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left max-[480px]:flex-col max-[480px]:items-center max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2 max-[480px]:text-center'
+            ? labelsBelowIcon
+              ? 'w-full py-2.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
+              : 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left max-[480px]:flex-col max-[480px]:items-center max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2 max-[480px]:text-center'
             : 'w-full mx-auto py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
         } ${
           isActive
-            ? 'bg-[#F3F3F3] text-[#610000] border border-[#E6C28F] shadow-xs'
-            : 'text-[#FFE59A] border border-transparent hover:text-[#FFE59A] hover:bg-white/10'
+            ? 'bg-white/10 text-white border border-white/20 shadow-xs'
+            : 'text-white border border-transparent hover:text-[#FFE59A] hover:bg-white/10'
         }`}
       >
         {isActive && (
@@ -84,7 +86,15 @@ function FlatNavItem({
           />
         )}
 
-        {iconImage ? (
+        {iconImage ? labelsBelowIcon ? (
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+            <img
+              src={iconImage}
+              alt=""
+              className="h-full w-full object-contain transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+            />
+          </span>
+        ) : (
           <img
             src={iconImage}
             alt=""
@@ -93,12 +103,20 @@ function FlatNavItem({
             }`}
           />
         ) : (
-          <div className={`flex items-center justify-center shrink-0 transition-all ${          isExpanded ? 'w-6 h-6 max-[480px]:w-[34px] max-[480px]:h-[34px]' : 'w-[38px] h-[38px]'}`}>
-            <Icon
-              size={isExpanded ? 19 : 34}
-              className="transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
-            />
-          </div>
+          labelsBelowIcon ? (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+              <Icon size={28} className="transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]" />
+            </span>
+          ) : (
+            <div className={`flex items-center justify-center shrink-0 transition-all ${
+              isExpanded ? 'w-6 h-6 max-[480px]:w-[34px] max-[480px]:h-[34px]' : 'w-[38px] h-[38px]'
+            }`}>
+              <Icon
+                size={isExpanded ? 19 : 34}
+                className="transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+              />
+            </div>
+          )
         )}
 
         {!isExpanded && (
@@ -118,15 +136,18 @@ function FlatNavItem({
         )}
 
         {isExpanded && (
-          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px] ${
-            isActive ? 'text-[#610000]' : 'text-[#FFE59A]'
-          }`}>
+          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal text-white group-hover:text-[#FFE59A] ${
+            labelsBelowIcon
+              ? 'w-full flex-none whitespace-normal text-center text-[9px]'
+              : 'flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px]'
+          }`}
+          >
             {item.label}
           </span>
         )}
 
         {item.badge && isExpanded && (
-          <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-black uppercase shadow-2xs border ${
+          <span className={`ml-auto ${labelsBelowIcon ? 'text-[8px]' : 'text-[10px]'} px-2 py-0.5 rounded-full font-black uppercase shadow-2xs border ${
             isActive
               ? 'bg-[#610000] text-white border-[#610000]'
               : item.badge === 'Live' || item.badge === 'LIVE'
@@ -172,39 +193,36 @@ function AdminSectionGroup({
       aria-current={isActive ? 'page' : undefined}
       className={`group relative w-full transition-all duration-150 rounded-xl ${
         sidebarExpanded
-          ? 'px-2 py-2 flex items-center gap-2 text-left'
+          ? 'px-1 py-2 flex flex-col items-center justify-center gap-1 text-center'
           : 'flex-col px-1 py-2 flex items-center justify-center gap-1'
       } ${
         isActive
-        ? 'bg-[#F3F3F3] text-[#610000] border border-[#E6C28F] shadow-xs'
-        : 'text-[#FFE59A] border border-transparent hover:bg-white/10 hover:text-[#FFE59A]'
+          ? 'bg-white/10 text-white border border-white/20 shadow-xs'
+          : 'text-white border border-transparent hover:bg-white/10 hover:text-[#FFE59A]'
       }`}
       title={sidebarExpanded ? section.sectionLabel : undefined}
     >
       {isActive && (
-        <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#610000]" />
+        <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#FFE59A]" />
       )}
-      <span className="shrink-0 transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]" style={{ color: isActive ? '#610000' : '#FFE59A' }}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
         {section.sidebarIconSrc ? (
           <img
             src={section.sidebarIconSrc}
             alt=""
-            className={`object-contain ${sidebarExpanded ? 'h-5 w-5' : 'h-[31px] w-[31px]'}`}
+            className="h-full w-full object-contain transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
           />
         ) : (
-          <SectionIcon size={sidebarExpanded ? 20 : 31} />
+          <SectionIcon
+            size={28}
+            className="text-[#610000] transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+          />
         )}
       </span>
       {sidebarExpanded ? (
-        <>
-          <span
-            className="flex-1 text-left text-[11px] font-black uppercase tracking-wider truncate"
-            style={{ color: isActive ? '#610000' : '#FFE59A' }}
-          >
-            {section.sectionLabel}
-          </span>
-          <ChevronRight size={13} className="shrink-0" style={{ color: isActive ? '#610000' : '#FFE59A' }} />
-        </>
+        <span className="w-full flex-none whitespace-normal text-center text-[9px] font-black uppercase leading-tight tracking-wide text-white group-hover:text-[#FFE59A]">
+          {section.sectionLabel}
+        </span>
       ) : (
         <AnimatePresence>
           {hovered && (
@@ -233,7 +251,6 @@ export default function ERPSidebar({
   currentRole = 'principal',
   isExpanded: externalExpanded,
   isLocked = false,
-  onExpandSidebar,
   onHoverChange,
   onToggleLock,
   activeAdminSectionId = null,
@@ -243,8 +260,9 @@ export default function ERPSidebar({
 
   const isAdmin = currentRole === 'admin';
   const isStudent = currentRole === 'student';
-  const sidebarWidth = isStudent ? 68 : 86;
-  const expandedSidebarWidth = isStudent ? 220 : 236;
+  const isCompactPortal = isStudent || isAdmin;
+  const sidebarWidth = isCompactPortal ? 68 : 86;
+  const expandedSidebarWidth = isCompactPortal ? 89.76 : 236;
 
   // For non-admin, non-student roles use ALL_NAV_ITEMS flat list
   const flatItems = isStudent ? STUDENT_NAV_ITEMS : ALL_NAV_ITEMS;
@@ -256,43 +274,28 @@ export default function ERPSidebar({
       onPointerEnter={() => onHoverChange?.(true)}
       onPointerLeave={() => onHoverChange?.(false)}
       style={{
-        maxWidth: isStudent && isExpanded ? 'min(220px, max(110px, 44vw))' : undefined,
+        maxWidth: isCompactPortal && isExpanded ? 'min(89.76px, max(68px, 17.952vw))' : undefined,
       }}
       className={`shrink-0 border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
-        isStudent ? 'bg-[#8F1016]' : 'bg-[#610000]'
+        isCompactPortal ? 'bg-[#8F1016]' : 'bg-[#610000]'
       } ${
         isExpanded
-          ? isStudent ? 'w-[220px] min-w-0' : 'w-[236px] min-w-[236px]'
-          : isStudent ? 'w-[68px] min-w-[68px]' : 'w-[86px] min-w-[86px]'
+          ? isCompactPortal ? 'w-[89.76px] min-w-0' : 'w-[236px] min-w-[236px]'
+          : isCompactPortal ? 'w-[68px] min-w-[68px]' : 'w-[86px] min-w-[86px]'
       }`}
     >
       {/* ── TOP HEADER ───────────────────────────────────────────── */}
       <div className="pt-1 pb-3 px-2 flex flex-col items-center border-b border-stone-100 w-full transition-all">
-        {isExpanded ? (
-          isStudent ? (
-            <div className="w-full flex flex-col items-center px-1">
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-[77px] h-[77px] rounded-full border border-white/20 overflow-hidden shadow-xs"
-                onClick={onExpandSidebar}
-                aria-label="View Rahul Sharma's profile"
-                aria-expanded="true"
-                title="Rahul Sharma"
-              >
-                <img src="/student-profile.png?v=1" alt="Rahul Sharma" className="w-full h-full object-cover" />
-              </motion.button>
-              <div className="mt-2 text-center leading-tight">
-                <span className="block text-xs font-black text-white">Rahul Sharma</span>
-                <span className="mt-1 block text-[10px] font-bold text-[#FFE59A]">23CSE001</span>
-              </div>
-              <div className="mt-3 w-full border-t border-white/20 pt-2 text-center leading-relaxed">
-                <span className="block text-[11px] font-bold text-white/90">PUC - Computer Science</span>
-                <span className="block text-[11px] font-bold text-white/90">JEE/NEET</span>
-              </div>
-            </div>
-          ) : (
+        {isCompactPortal ? (
+          <motion.div
+            animate={{ width: isExpanded ? 56 : 38, height: isExpanded ? 56 : 38 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="shrink-0 overflow-hidden rounded-[22%] border border-white/30 bg-white p-1 shadow-xs"
+          >
+            <img src="/updated_logo.png" alt="Sir MV College" className="h-full w-full object-contain" />
+          </motion.div>
+        ) : (
+          isExpanded ? (
             <div className="w-full flex items-center px-1">
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <motion.div
@@ -302,30 +305,15 @@ export default function ERPSidebar({
                   onClick={() => onSelectModule('dashboard')}
                   title="Dashboard"
                 >
-                  <img src="/logo.png?v=3" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  <img src="/updated_logo.png" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 </motion.div>
                 <div className="leading-tight text-left overflow-hidden">
                   <span className="font-black text-xs text-white tracking-tight block truncate uppercase">Sir MV PU College</span>
                 </div>
               </div>
             </div>
-          )
-        ) : (
-          <div className="flex w-full justify-center">
-            {isStudent ? (
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-[43px] h-[43px] rounded-full border border-white/20 overflow-hidden shadow-xs"
-                onClick={onExpandSidebar}
-                aria-label="Open Rahul Sharma's profile"
-                aria-expanded="false"
-                title="Open student profile"
-              >
-                <img src="/student-profile.png?v=1" alt="Rahul Sharma" className="w-full h-full object-cover" />
-              </motion.button>
-            ) : (
+          ) : (
+            <div className="flex w-full justify-center">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -333,10 +321,10 @@ export default function ERPSidebar({
                 onClick={() => onSelectModule('dashboard')}
                 title="Dashboard"
               >
-                <img src="/logo.png?v=3" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <img src="/updated_logo.png" alt="Sir MV College" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               </motion.div>
-            )}
-          </div>
+            </div>
+          )
         )}
         <button
           type="button"
@@ -366,6 +354,7 @@ export default function ERPSidebar({
               item={{ id: 'dashboard', label: 'Dashboard', icon: IconVNavDashboard }}
               isActive={activeModule === 'dashboard' && !activeAdminSectionId}
               isExpanded={isExpanded}
+              labelsBelowIcon={isAdmin}
               onSelectModule={onSelectModule}
             />
 
@@ -397,6 +386,7 @@ export default function ERPSidebar({
                   item={item}
                   isActive={isActive}
                   isExpanded={isExpanded}
+                  labelsBelowIcon={isStudent}
                   onSelectModule={onSelectModule}
                 />
               );
@@ -418,7 +408,7 @@ export default function ERPSidebar({
             >
               <IconVNavPower size={20} />
             </motion.button>
-            <span className="text-[10px] font-black text-[#FFE59A] uppercase tracking-wider">Sir MV ERP v2.4</span>
+            <span className={`${isStudent ? 'text-[8px]' : 'text-[10px]'} font-black text-[#FFE59A] uppercase tracking-wider`}>Sir MV ERP v2.4</span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1">

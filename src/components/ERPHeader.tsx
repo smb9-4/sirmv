@@ -78,19 +78,18 @@ export default function ERPHeader({
   }, []);
 
   return (
-    <header className="w-full px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ backgroundColor: normalizedRole === 'student' ? '#A41419' : '#610000' }}>
-      {/* Left side: College Logo */}
+    <header className="w-full px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ backgroundColor: '#A41419' }}>
+      {/* Left side: College name */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-[20%] bg-white/10 border border-white/15 overflow-hidden flex items-center justify-center p-1 shadow-sm">
-          <img src="/logo.png?v=3" alt="Sir MV" className="w-full h-full object-contain" />
-        </div>
-
-        <div>
+        <div className="leading-tight">
           <div className="flex items-center gap-2">
             <span className="font-black text-xs md:text-sm text-white tracking-tight uppercase">
               SIR MV PU COLLEGE
             </span>
           </div>
+          <span className="mt-0.5 block text-[10px] font-semibold text-white/75">
+            {normalizedRole === 'student' ? 'SIRMV Campus' : activeProfile.campus}
+          </span>
         </div>
       </div>
 

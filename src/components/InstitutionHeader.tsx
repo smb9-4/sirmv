@@ -6,7 +6,7 @@ export default function InstitutionHeader() {
       style={{ background: 'linear-gradient(135deg, #500000 0%, #650000 60%, #7a0000 100%)' }}
     >
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-        <img src="/logo.png?v=3" alt="Sir MV Logo" className="h-14 w-14 object-contain rounded" />
+        <img src="/updated_logo.png" alt="Sir MV Logo" className="h-14 w-14 object-contain rounded" />
         <div className="flex-1">
           <h1 className="font-extrabold text-lg md:text-2xl tracking-wide text-white leading-tight">
             SIR MV GROUP OF INSTITUTIONS

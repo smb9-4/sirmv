@@ -6,6 +6,12 @@ import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, Responsi
 import type { PastExamRecord } from '../pucAcademicData';
 import AnimatedCounter from './AnimatedCounter';
 
+const formatDuration = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
+};
+
 interface ExamMCQReviewModalProps {
   exam: PastExamRecord | null;
   onClose: () => void;
@@ -46,6 +52,42 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
   const bestSubject = subjectPerformance.reduce<(typeof subjectPerformance)[number] | null>(
     (best, subject) => (best === null || subject.percentage > best.percentage ? subject : best),
     null,
+  );
+  const questionTimeAnalysis = exam.questionsReview
+    .filter((question) => Number.isFinite(question.timeTakenSeconds) && question.timeTakenSeconds >= 0)
+    .sort((a, b) => a.questionNumber - b.questionNumber);
+  const subjectQuestionAnalysis = exam.subjectScores.map(({ subject }) => {
+    const questions = exam.questionsReview.filter((question) => question.subject === subject);
+
+    return {
+      subject,
+      reviewedCount: questions.length,
+      attendedCount: questions.filter((question) => Boolean(question.selectedOptionId)).length,
+      correctCount: questions.filter(
+        (question) => Boolean(question.selectedOptionId) && question.selectedOptionId === question.correctOptionId,
+      ).length,
+      incorrectCount: questions.filter(
+        (question) => Boolean(question.selectedOptionId) && question.selectedOptionId !== question.correctOptionId,
+      ).length,
+      leftCount: questions.filter((question) => !question.selectedOptionId).length,
+    };
+  });
+  const subjectTimeAnalysis = exam.subjectScores.map(({ subject }) => {
+    const questions = questionTimeAnalysis.filter((question) => question.subject === subject);
+    const totalSeconds = questions.reduce((total, question) => total + question.timeTakenSeconds, 0);
+
+    return {
+      subject,
+      questionCount: questions.length,
+      totalSeconds,
+      averageSeconds: questions.length > 0 ? Math.round(totalSeconds / questions.length) : null,
+    };
+  });
+  const maxSubjectTime = Math.max(1, ...subjectTimeAnalysis.map(({ totalSeconds }) => totalSeconds));
+  const maxQuestionTime = Math.max(1, ...questionTimeAnalysis.map(({ timeTakenSeconds }) => timeTakenSeconds));
+  const totalTrackedSeconds = questionTimeAnalysis.reduce(
+    (total, question) => total + question.timeTakenSeconds,
+    0,
   );
 
   return createPortal(
@@ -197,7 +239,7 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
             <div className="grid gap-4 md:grid-cols-2">
               <article className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
                 <h5 className="text-xs font-bold uppercase tracking-wide text-stone-500">Overall Performance</h5>
-                <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row">
+                <div className="mt-4 flex justify-center">
                   <div
                     className="h-36 w-36 shrink-0 rounded-full p-[10px]"
                     role="img"
@@ -211,26 +253,48 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
                       <span className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Overall Score</span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="grid w-full grid-cols-2 gap-3 text-center sm:grid-cols-1 sm:text-left">
-                    <div className="rounded-xl bg-white px-3 py-2">
+                <div className="mt-4 space-y-3 rounded-xl border border-stone-200 bg-white p-3">
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="rounded-lg bg-stone-50 px-3 py-2">
                       <span className="block text-[10px] font-bold uppercase text-stone-400">Marks</span>
                       <strong className="text-sm text-stone-800">{exam.marksObtained} / {exam.totalMarks}</strong>
                     </div>
-                    <div className="rounded-xl bg-white px-3 py-2">
+                    <div className="rounded-lg bg-stone-50 px-3 py-2">
                       <span className="block text-[10px] font-bold uppercase text-stone-400">Cohort Rank</span>
                       <strong className="text-sm text-stone-800">#{exam.cohortRank} of {exam.totalCohortStudents}</strong>
                     </div>
-                    {bestSubject && (
-                      <div className="col-span-2 rounded-xl bg-amber-100/70 px-3 py-2 sm:col-span-1">
-                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-amber-800">
-                          <Award size={12} /> Best Subject
-                        </span>
-                        <strong className="text-sm text-amber-950">
-                          {bestSubject.subject} ({bestSubject.percentage}%)
-                        </strong>
-                      </div>
-                    )}
+                  </div>
+
+                  {bestSubject && (
+                    <div className="rounded-lg bg-amber-100/70 px-3 py-2">
+                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-amber-800">
+                        <Award size={12} /> Best Subject
+                      </span>
+                      <strong className="text-sm text-amber-950">
+                        {bestSubject.subject} ({bestSubject.percentage}%)
+                      </strong>
+                    </div>
+                  )}
+
+                  <div className="border-t border-stone-200 pt-3">
+                    <div className="mb-2">
+                      <h6 className="text-[11px] font-bold uppercase tracking-wide text-stone-600">Questions Attended by Subject</h6>
+                      <p className="mt-0.5 text-[10px] text-stone-400">Counts from reviewed questions only.</p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {subjectQuestionAnalysis.map(({ subject, reviewedCount, attendedCount, leftCount }) => (
+                        <div key={subject} className="rounded-lg bg-stone-50 px-3 py-2">
+                          <span className="block text-[10px] font-semibold text-stone-600">{subject}</span>
+                          <strong className="text-[11px] text-stone-800">
+                            {reviewedCount > 0
+                              ? `${attendedCount} attended · ${leftCount} left`
+                              : 'No reviewed questions'}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </article>
@@ -262,6 +326,72 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="mt-5 border-t border-stone-200 pt-4">
+                  <div className="mb-3">
+                    <h6 className="text-[11px] font-bold uppercase tracking-wide text-stone-600">Subject-wise Time Analysis</h6>
+                    <p className="mt-1 text-[10px] text-stone-400">
+                      Timings from {questionTimeAnalysis.length} reviewed questions only.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {subjectTimeAnalysis.map(({ subject, questionCount, totalSeconds, averageSeconds }) => (
+                      <div key={subject}>
+                        <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="font-semibold text-stone-700">{subject}</span>
+                          {averageSeconds === null ? (
+                            <span className="text-stone-400">No reviewed-question timing</span>
+                          ) : (
+                            <span className="shrink-0 font-semibold text-stone-600">
+                              {formatDuration(totalSeconds)} total · {averageSeconds}s avg · {questionCount} Q
+                            </span>
+                          )}
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-stone-200">
+                          {averageSeconds !== null && (
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-[#650000] to-[#C2410C]"
+                              style={{ width: `${(totalSeconds / maxSubjectTime) * 100}%` }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-5 border-t border-stone-200 pt-4">
+                  <div className="mb-2">
+                    <h6 className="text-[11px] font-bold uppercase tracking-wide text-stone-600">Question Outcomes by Subject</h6>
+                    <p className="mt-1 text-[10px] text-stone-400">Correct, incorrect and left counts from reviewed questions.</p>
+                  </div>
+                  <div className="space-y-2">
+                    {subjectQuestionAnalysis.map(({
+                      subject,
+                      reviewedCount,
+                      correctCount,
+                      incorrectCount,
+                      leftCount,
+                    }) => (
+                      <div key={subject} className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                        <span className="font-semibold text-stone-700">{subject}</span>
+                        {reviewedCount > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            <span className="rounded-md bg-green-50 px-1.5 py-0.5 font-semibold text-green-700">
+                              {correctCount} correct
+                            </span>
+                            <span className="rounded-md bg-red-50 px-1.5 py-0.5 font-semibold text-red-700">
+                              {incorrectCount} incorrect
+                            </span>
+                            <span className="rounded-md bg-stone-100 px-1.5 py-0.5 font-semibold text-stone-600">
+                              {leftCount} left
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-stone-400">No reviewed questions</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </article>
             </div>
@@ -295,6 +425,63 @@ export default function ExamMCQReviewModal({ exam, onClose, sidebarWidth = 86 }:
                   </div>
                 )}
               </div>
+            </article>
+
+            <article className="rounded-2xl border border-stone-200 bg-white p-4">
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h5 className="text-xs font-bold uppercase tracking-wide text-stone-500">Question-wise Time Analysis</h5>
+                  <p className="mt-1 text-[11px] text-stone-400">
+                    Time spent on each reviewed question, grouped by question number and subject.
+                  </p>
+                </div>
+                <div className="flex gap-4 text-right text-[11px]">
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase text-stone-400">Tracked time</span>
+                    <strong className="text-stone-700">{formatDuration(totalTrackedSeconds)}</strong>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-bold uppercase text-stone-400">Average / question</span>
+                    <strong className="text-stone-700">
+                      {questionTimeAnalysis.length > 0
+                        ? `${Math.round(totalTrackedSeconds / questionTimeAnalysis.length)}s`
+                        : '—'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+              {questionTimeAnalysis.length > 0 ? (
+                <div className="space-y-2.5">
+                  {questionTimeAnalysis.map((question) => (
+                    <div key={question.id} className="grid grid-cols-[minmax(90px,1fr)_2fr_auto] items-center gap-3 text-[11px]">
+                      <div className="min-w-0">
+                        <span className="block font-semibold text-stone-700">Q{question.questionNumber} · {question.subject}</span>
+                        <span className="block truncate text-[10px] text-stone-400">{question.topic}</span>
+                      </div>
+                      <div
+                        className="h-2 overflow-hidden rounded-full bg-stone-200"
+                        role="progressbar"
+                        aria-label={`Time spent on question ${question.questionNumber}`}
+                        aria-valuemin={0}
+                        aria-valuemax={maxQuestionTime}
+                        aria-valuenow={question.timeTakenSeconds}
+                      >
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#650000] to-[#C2410C]"
+                          style={{ width: `${(question.timeTakenSeconds / maxQuestionTime) * 100}%` }}
+                        />
+                      </div>
+                      <strong className="min-w-[48px] text-right text-stone-600">
+                        {formatDuration(question.timeTakenSeconds)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-xl bg-stone-50 p-4 text-center text-xs text-stone-500">
+                  No question-level timing data is available for this exam.
+                </p>
+              )}
             </article>
           </section>
 

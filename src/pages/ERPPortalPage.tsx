@@ -50,14 +50,6 @@ import {
 import { usePortal } from '../context/PortalContext';
 import type { Announcement } from '../types';
 
-const ADMIN_SECTION_DESCRIPTIONS: Record<string, string> = {
-  device_admin: 'Manage student tablets, device inventory, serial specifications, and student device health.',
-  exam_control: 'Monitor live exams, manage time, track submissions and review incidents.',
-  student_activity: 'Application and tab activity monitoring, student reports, and tablet notifications.',
-  security_remote: 'Manage app access, deploy apps, push OS updates and review audit logs.',
-  reports_intelligence: 'Institution-wide summaries, maintenance, and system configuration.',
-};
-
 const ADMIN_ITEM_BADGES: Partial<Record<ERPModuleId, string>> = {
   adm_all_devices: '100',
   adm_battery_health: '7 ⚠',
@@ -88,6 +80,40 @@ const ADMIN_ITEM_DESCRIPTIONS: Partial<Record<ERPModuleId, string>> = {
   adm_app_deployment: 'Install approved apps across tablets.',
   adm_os_updates: 'Manage operating system updates.',
   adm_audit_logs: 'Review administrative actions and history.',
+};
+
+const STUDENT_SECTION_TITLES: Partial<Record<ERPModuleId, string>> = {
+  announcements: 'Announcements',
+  noticeboard: 'Announcements',
+  tests: 'Exams',
+  exam_management: 'Exams',
+  notes: 'Notes',
+  board_marks: 'Notes',
+  materials: 'Study Materials',
+  classes: 'Study Materials',
+  reports: 'Results',
+  timetable: 'Timetable',
+  college_calendar: 'Calendar',
+  complaints: 'Complaint Box',
+  reported_issues: 'Complaint Box',
+  attendance: 'Attendance',
+};
+
+const STUDENT_SECTION_SUBTITLES: Partial<Record<ERPModuleId, string>> = {
+  announcements: 'Official circulars and updates from college faculty',
+  noticeboard: 'Official circulars and updates from college faculty',
+  tests: 'Live examinations and competitive mock tests',
+  exam_management: 'Live examinations and competitive mock tests',
+  notes: 'Curated subject notes and chapter guides',
+  board_marks: 'Curated subject notes and chapter guides',
+  materials: 'Videos, worksheets, question banks and preparation resources',
+  classes: 'Videos, worksheets, question banks and preparation resources',
+  reports: 'Performance analytics, scores and exam reviews',
+  timetable: 'Daily lectures, practical periods and subject schedules',
+  college_calendar: 'Monthly academic and examination schedule',
+  complaints: 'Submit and track academic or facility concerns',
+  reported_issues: 'Submit and track academic or facility concerns',
+  attendance: 'Subject-wise attendance records and eligibility status',
   adm_overall_reports: 'View institution-wide system summaries.',
   adm_student_reports: 'Review individual student records.',
   adm_maintenance: 'Track service and repair requests.',
@@ -306,8 +332,9 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarLocked, setSidebarLocked] = useState(false);
   const sidebarExpanded = sidebarHovered || sidebarLocked;
-  const sidebarWidth = currentRole === 'student'
-    ? sidebarExpanded ? 220 : 68
+  const compactSidebar = currentRole === 'student' || currentRole === 'admin';
+  const sidebarWidth = compactSidebar
+    ? sidebarExpanded ? 89.76 : 68
     : sidebarExpanded ? 236 : 86;
   const [activeAdminSectionId, setActiveAdminSectionId] = useState<string | null>(null);
   const [hoveredAdminSectionId, setHoveredAdminSectionId] = useState<string | null>(null);
@@ -351,13 +378,16 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const academicCalendarCellCount = Math.ceil((academicCalendarOffset + academicCalendarDayCount) / 7) * 7;
 
   const activeProfile = ROLE_PROFILES[currentRole === 'student' ? 'student' : 'admin'];
-  const activeSectionHeadingColor = currentRole === 'student' ? '#FFE59A' : '#1c1917';
-  const activeSectionTextColor = currentRole === 'student' ? '#AF7F57' : '#78716c';
+  const activeSectionHeadingColor = currentRole === 'student' ? '#172033' : '#1c1917';
+  const activeSectionTextColor = currentRole === 'student' ? '#64748B' : '#78716c';
   const activeSectionBannerStyle = currentRole === 'student'
-    ? { backgroundColor: '#610000', borderColor: '#610000' }
+    ? { borderColor: '#E2E8F0' }
     : undefined;
+  const activeSectionHeaderClass = currentRole === 'student'
+    ? '!rounded-none !border-x-0 !border-t-0 !border-b !border-slate-200 !bg-transparent !px-0 !py-4 !shadow-none'
+    : '';
   const activeSectionBackButtonClass = currentRole === 'student'
-    ? 'border-[#AF7F57] text-[#AF7F57] hover:bg-white/10'
+    ? '!h-10 !w-10 !p-0 flex items-center justify-center !rounded-full border-slate-200 text-slate-600 hover:bg-slate-50'
     : 'border-stone-200 text-stone-600 hover:bg-stone-50';
   const activeAdminSection = ADMIN_NAV_SECTIONS.find((section) => section.sectionId === activeAdminSectionId);
 
@@ -480,7 +510,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         { label: 'Exam Tracks', value: 'JEE Main, KCET, NEET, VTU' },
         { label: 'Interactive Player', value: 'Available with full resolution' },
       ],
-      onAction: () => setActiveModule('classes'),
+      onAction: () => setActiveModule('materials'),
     },
     {
       id: 'results',
@@ -580,7 +610,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   ];
 
   return (
-    <div className="h-screen overflow-hidden bg-[#F3F3F3] flex flex-col font-sans text-stone-900 select-none">
+    <div className="h-screen overflow-hidden bg-[#F3F3F3] flex font-sans text-stone-900 select-none">
       {/* 2. SIGNATURE ACADEMIC LOADER (Pencil and Ruler orbiting in opposite directions) */}
       <AnimatePresence>
         {showLoader && (
@@ -591,17 +621,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         )}
       </AnimatePresence>
 
-      {/* Top Header with Role Switcher */}
-      <div className="shrink-0">
-        <ERPHeader
-          currentRole={currentRole}
-          onRoleChange={handleRoleChange}
-          unreadAnnouncements={unreadAnnouncements}
-          onOpenAnnouncement={handleOpenAnnouncement}
-        />
-      </div>
-
-      {/* Main Layout: Sidebar + Dynamic Animated Content */}
+      {/* Full-height Sidebar + Header and Content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left ERP Sidebar */}
         <ERPSidebar
@@ -625,7 +645,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           isLocked={sidebarLocked}
           onHoverChange={setSidebarHovered}
           onToggleLock={() => setSidebarLocked((locked) => !locked)}
-          onExpandSidebar={() => setSidebarLocked(true)}
           activeAdminSectionId={activeAdminSectionId}
         />
 
@@ -634,6 +653,15 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
             currentRole === 'student' && activeModule === 'dashboard' ? 'bg-[#F3F5FA]' : ''
           }`}
         >
+          <div className="shrink-0">
+            <ERPHeader
+              currentRole={currentRole}
+              onRoleChange={handleRoleChange}
+              unreadAnnouncements={unreadAnnouncements}
+              onOpenAnnouncement={handleOpenAnnouncement}
+            />
+          </div>
+
           {/* Right Content Area with Smooth Horizontal Slide Transitions */}
           <main
             className={`flex-1 min-h-0 overflow-y-auto overscroll-contain w-full mx-auto space-y-6 ${
@@ -728,18 +756,18 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   </div>
 
                   {/* Section Title */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-black text-[#172033] tracking-tight">
+                  <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-extrabold tracking-tight text-[#172033]">
                         Your workspace
                       </h2>
-                      <span className="rounded-full border border-[#E5BD55]/40 bg-white px-2.5 py-1 text-[11px] font-bold text-[#8B5E16]">
-                        {STUDENT_DASHBOARD_CARDS.length} modules
-                      </span>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        Student modules · Select a module to open
+                      </p>
                     </div>
-                    <div className="text-[11px] font-medium text-slate-400">
-                      Select a module to open
-                    </div>
+                    <span className="self-start rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 sm:self-auto">
+                      {STUDENT_DASHBOARD_CARDS.length} modules
+                    </span>
                   </div>
 
                   {/* 3. EIGHT STUDENT DASHBOARD CARDS WITH HOVER EXPANSION */}
@@ -760,26 +788,21 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {currentRole !== 'student' && activeModule === 'dashboard' && activeAdminSection && (
                 <div className="space-y-6">
                   <div
-                    className="rounded-3xl p-6 shadow-sm border flex flex-col sm:flex-row sm:items-center gap-4"
-                    style={{ backgroundColor: '#610000', borderColor: '#610000' }}
+                    className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4"
                   >
                     <button
                       type="button"
                       onClick={() => setActiveAdminSectionId(null)}
-                      className="flex items-center gap-2 self-start rounded-xl border border-[#F6B523]/50 px-3 py-2 text-xs font-bold text-[#F3F3F3] transition hover:bg-white/10"
+                      aria-label="All Sections"
+                      title="All Sections"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center self-start rounded-full border border-stone-200 text-stone-600 transition hover:border-[#A60000] hover:bg-red-50 hover:text-[#A60000]"
                     >
                       <ArrowLeft size={15} />
-                      All Sections
                     </button>
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-xl font-black tracking-tight text-[#F3F3F3]">{activeAdminSection.sectionLabel}</h1>
-                      <p className="mt-1 text-xs leading-relaxed text-[#F3F3F3]">
-                        {ADMIN_SECTION_DESCRIPTIONS[activeAdminSection.sectionId]}
-                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#A60000]">Admin section</p>
+                      <h1 className="text-xl font-black tracking-tight text-stone-900">{activeAdminSection.sectionLabel}</h1>
                     </div>
-                    <span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-[#F3F3F3]">
-                      {activeAdminSection.items.length} modules
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -856,18 +879,21 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 <div className="space-y-6">
                   {/* ── Top Welcome Bar ── */}
                   <div
-                    className="relative overflow-hidden rounded-3xl p-6 md:p-7 text-white shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-                    style={{ background: 'linear-gradient(135deg, #500000 0%, #650000 65%, #A60000 100%)' }}
+                    className="relative overflow-hidden rounded-2xl p-6 md:p-7 text-white shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+                    style={{ backgroundColor: '#991117' }}
                   >
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[#E5BD55]" />
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#FFE59A] text-[#500000] tracking-wider">{activeProfile.roleBadge}</span>
                         <span className="text-xs text-white/75 font-medium">• Manchester Technologies – Shivamogga</span>
                       </div>
-                      <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Admin / Tab Management</h1>
+                      <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+                        <span className="text-[#F3DCAE]">Admin / Tab Management</span>
+                      </h1>
                       <p className="text-xs text-white/80 mt-1 max-w-2xl leading-relaxed">Central control for student tablets, live examinations, activity monitoring, security and reports. Open a section card to view its modules.</p>
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-4 border border-white/20 backdrop-blur-sm flex items-center gap-3 shrink-0 shadow-xs">
+                    <div className="bg-black/30 rounded-2xl p-4 border border-white/10 backdrop-blur-md flex items-center gap-3 shrink-0 shadow-xs">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[#500000] text-base shadow-sm bg-[#FFE59A]">{activeProfile.initial}</div>
                       <div>
                         <h3 className="font-extrabold text-xs text-white truncate max-w-[170px]">{activeProfile.name}</h3>
@@ -897,35 +923,46 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                           }}
                           layout
                           animate={{
-                            y: isHovered ? -5 : 0,
-                            scale: isHovered ? 1.025 : 1,
-                            boxShadow: isHovered ? '0 20px 36px -20px rgba(15,23,42,0.35)' : '0 2px 6px -2px rgba(15,23,42,0.12)',
+                            borderColor: isHovered ? '#E5BD55' : '#EEF0F4',
+                            boxShadow: isHovered
+                              ? '0 16px 30px -8px rgba(101, 0, 0, 0.14), 0 4px 18px rgba(229, 189, 85, 0.14)'
+                              : '0 2px 6px rgba(31, 41, 55, 0.025)',
+                            y: isHovered ? -1 : 0,
                           }}
-                          transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-                          className="group relative flex h-full min-h-[310px] flex-col overflow-hidden rounded-3xl border border-stone-200 border-t-[3px] bg-white p-5 pb-12 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
-                          style={{ borderTopColor: '#650000' }}
+                          transition={{
+                            borderColor: { duration: 0.2 },
+                            boxShadow: { duration: 0.2 },
+                            y: { duration: 0.18, ease: 'easeOut' },
+                          }}
+                          className="group relative flex h-full min-h-[174px] flex-col items-center justify-center overflow-hidden rounded-3xl border border-stone-200 bg-white p-4 pb-12 text-center shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
                         >
-                          <div className="flex items-start justify-end gap-3">
-                            <span className="rounded-full border border-stone-100 px-3 py-1.5 text-[10px] font-black text-stone-700">
-                              {section.items.length} Modules
-                            </span>
-                          </div>
-
-                          <div className="flex h-[132px] w-full items-center justify-center">
+                          <motion.div
+                            animate={{
+                              y: isHovered ? [0, -2, 0] : 0,
+                              scale: isHovered ? [1, 1.02, 1] : 1,
+                            }}
+                            transition={{
+                              y: { duration: 0.5, repeat: isHovered ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
+                              scale: { duration: 0.5, repeat: isHovered ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
+                            }}
+                            className="mb-5 flex h-[68px] w-[68px] items-center justify-center"
+                          >
                             <img
                               src={section.sectionIconSrc}
                               alt=""
-                              className={`h-full w-[190px] object-contain transition duration-300 ease-out ${
-                                isHovered ? 'drop-shadow-[0_0_16px_#E6C28F]' : ''
-                              } group-focus-visible:drop-shadow-[0_0_16px_#E6C28F]`}
+                              className="h-full w-full object-contain transition-[filter] duration-300"
+                              style={{
+                                filter: isHovered
+                                  ? 'drop-shadow(0 0 11px rgba(229, 189, 85, 0.7))'
+                                  : undefined,
+                              }}
                             />
-                          </div>
+                          </motion.div>
 
-                          <div className="mt-3 text-center">
+                          <div className="text-center">
                             <h2 className={`font-black text-sm uppercase tracking-wide transition-colors duration-300 ${
                               isHovered ? 'text-[#A60000]' : 'text-stone-900'
                             } group-focus-visible:text-[#A60000]`}>{section.sectionLabel}</h2>
-                            <p className="mt-1 text-xs leading-relaxed text-stone-500">{ADMIN_SECTION_DESCRIPTIONS[section.sectionId]}</p>
                           </div>
 
                           <span
@@ -1140,11 +1177,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'staffs' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
@@ -1225,7 +1262,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'reports' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -1235,11 +1272,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          {currentRole === 'student' ? 'EXAMINATION RESULTS & DIAGNOSTIC SCORECARDS' : 'INSTITUTIONAL PERFORMANCE & COHORT REPORTS'}
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'INSTITUTIONAL PERFORMANCE & COHORT REPORTS'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
                           {currentRole === 'student'
-                            ? 'Comprehensive diagnostic performance across JEE, NEET, KCET, and Board Theory examinations'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
                             : 'Cohort score distribution across all 100 students'}
                         </p>
                       </div>
@@ -1494,7 +1531,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'attendance' && currentRole === 'student' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -1504,8 +1541,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>MY ATTENDANCE</h2>
-                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>Daily, weekly, monthly and overall attendance records</p>
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
+                          {STUDENT_SECTION_TITLES[activeModule]}
+                        </h2>
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
+                          {STUDENT_SECTION_SUBTITLES[activeModule]}
+                        </p>
                       </div>
                     </div>
                     <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black ${
@@ -1707,7 +1748,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {(activeModule === 'announcements' || activeModule === 'noticeboard') && (
                 <div className="space-y-6">
                   {/* Module Header */}
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -1717,10 +1758,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          OFFICIAL NOTIFICATIONS & CIRCULARS FEED
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'OFFICIAL NOTIFICATIONS & CIRCULARS FEED'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          Verified academic circulars received directly from Principal, HODs, and Subject Teachers
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'Verified academic circulars received directly from Principal, HODs, and Subject Teachers'}
                         </p>
                       </div>
                     </div>
@@ -1882,7 +1925,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               {(activeModule === 'tests' || activeModule === 'exam_management') && (
                 <div className="space-y-6">
                   {/* Module Header with Live vs Practice Segmented Switcher */}
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => { setActiveModule('dashboard'); setPracticeSessionActive(false); }}
@@ -1892,12 +1935,14 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          EXAMINATION & ASSESSMENT CENTER
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'EXAMINATION & ASSESSMENT CENTER'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          {examViewMode === 'live'
-                            ? 'Live teacher-uploaded official papers and examination terminals'
-                            : 'Practice examination dashboard with subject analytics and custom revision studio'}
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : examViewMode === 'live'
+                              ? 'Live teacher-uploaded official papers and examination terminals'
+                              : 'Practice examination dashboard with subject analytics and custom revision studio'}
                         </p>
                       </div>
                     </div>
@@ -2532,7 +2577,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {(activeModule === 'notes' || activeModule === 'board_marks') && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -2542,10 +2587,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          OFFICIAL VERIFIED SUBJECT NOTES
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'OFFICIAL VERIFIED SUBJECT NOTES'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          Official chapter slides, handwritten notes & study modules endorsed by faculty
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'Official chapter slides, handwritten notes & study modules endorsed by faculty'}
                         </p>
                       </div>
                     </div>
@@ -2585,7 +2632,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'materials' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -2595,10 +2642,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          MULTIMEDIA & PREPARATION STUDY MATERIALS
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'MULTIMEDIA & PREPARATION STUDY MATERIALS'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          Interactive video lectures, PPT presentations and competitive problem sheets
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'Interactive video lectures, PPT presentations and competitive problem sheets'}
                         </p>
                       </div>
                     </div>
@@ -2638,7 +2687,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'timetable' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -2648,10 +2697,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          WEEKLY ACADEMIC TIMETABLE
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'WEEKLY ACADEMIC TIMETABLE'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          II PU Science • Physics, Chemistry, Maths & elective options
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'II PU Science • Physics, Chemistry, Maths & elective options'}
                         </p>
                       </div>
                     </div>
@@ -2700,7 +2751,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
               {activeModule === 'college_calendar' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center gap-3" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center gap-3 ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <button
                       onClick={() => setActiveModule('dashboard')}
                       className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
@@ -2711,8 +2762,14 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     <div className="flex items-center gap-3">
                       <CalendarDays size={22} style={{ color: activeSectionHeadingColor }} />
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>STUDENT ACADEMIC CALENDAR</h2>
-                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>JEE / NEET and theory exam schedule</p>
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'STUDENT ACADEMIC CALENDAR'}
+                        </h2>
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'JEE / NEET and theory exam schedule'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2818,7 +2875,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {(activeModule === 'complaints' || activeModule === 'reported_issues') && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
+                  <div className={`bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between ${activeSectionHeaderClass}`} style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
@@ -2828,10 +2885,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                       </button>
                       <div>
                         <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
-                          CAMPUS GRIEVANCE & COMPLAINTS CELL
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'CAMPUS GRIEVANCE & COMPLAINTS CELL'}
                         </h2>
                         <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
-                          Official student welfare channel monitored by Principal & Redressal Committee
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'Official student welfare channel monitored by Principal & Redressal Committee'}
                         </p>
                       </div>
                     </div>
@@ -2925,20 +2984,22 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ───────────────────────────────────────────────────────────── */}
               {activeModule === 'classes' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between">
+                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/80 flex items-center justify-between" style={activeSectionBannerStyle}>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setActiveModule('dashboard')}
-                        className="p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 transition apple-button"
+                        className={`p-2 rounded-xl border transition apple-button ${activeSectionBackButtonClass}`}
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div>
-                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight">
-                          DEPARTMENT CLASSROOM & LAB INFRASTRUCTURE
+                        <h2 className="font-extrabold text-xl text-stone-900 tracking-tight" style={{ color: activeSectionHeadingColor }}>
+                          {currentRole === 'student' ? STUDENT_SECTION_TITLES[activeModule] : 'DEPARTMENT CLASSROOM & LAB INFRASTRUCTURE'}
                         </h2>
-                        <p className="text-xs text-stone-500">
-                          Active smart lecture halls and computer science laboratories
+                        <p className="text-xs text-stone-500" style={{ color: activeSectionTextColor }}>
+                          {currentRole === 'student'
+                            ? STUDENT_SECTION_SUBTITLES[activeModule]
+                            : 'Active smart lecture halls and computer science laboratories'}
                         </p>
                       </div>
                     </div>

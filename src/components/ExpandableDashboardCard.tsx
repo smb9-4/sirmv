@@ -71,7 +71,7 @@ export default function ExpandableDashboardCard({
             y: { duration: 0.5, repeat: isExpanded ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
             scale: { duration: 0.5, repeat: isExpanded ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
           }}
-          className="mb-2 flex h-[68px] w-[68px] items-center justify-center"
+          className="mb-5 flex h-[68px] w-[68px] items-center justify-center"
         >
           <img
             src={card.iconSrc}

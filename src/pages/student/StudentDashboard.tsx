@@ -140,7 +140,7 @@ export default function StudentDashboard() {
         >
           {/* Decorative crest background */}
           <div className="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10 pointer-events-none">
-            <img src="/logo.png?v=3" alt="" className="w-80 h-80 object-contain" />
+            <img src="/updated_logo.png" alt="" className="w-80 h-80 object-contain" />
           </div>
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

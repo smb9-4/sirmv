@@ -1043,37 +1043,33 @@ export default function AdminModuleView({ moduleId, onBack, sidebarWidth }: Admi
       )}
       {/* ── Header ── */}
       <div
-        className="rounded-3xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5"
-        style={{ background: `linear-gradient(135deg, ${meta.sectionColor}12 0%, ${meta.sectionColor}06 100%)`, border: `1px solid ${meta.sectionColor}30` }}
+        className="rounded-2xl border border-stone-200 bg-white p-4 md:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div className="flex items-start gap-4">
           <button
             onClick={onBack}
             aria-label={`Back to ${section?.sectionLabel ?? 'admin section'}`}
-            className="mt-1 p-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-white transition shrink-0"
+            className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:border-[#A60000] hover:bg-red-50 hover:text-[#A60000] shrink-0"
           >
             <ArrowLeft size={16} />
           </button>
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span
-                className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white"
-                style={{ backgroundColor: meta.sectionColor }}
-              >
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#A60000]">
                 {meta.sectionNumber}. {meta.sectionLabel}
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tight">{meta.title}</h1>
-            <p className="text-xs md:text-sm text-stone-500 mt-1 max-w-2xl leading-relaxed">{meta.subtitle}</p>
+            <h1 className="text-xl md:text-2xl font-black text-stone-900 tracking-tight">{meta.title}</h1>
+            <p className="mt-1 max-w-2xl text-xs md:text-sm leading-relaxed text-stone-500">{meta.subtitle}</p>
           </div>
         </div>
 
         {Icon && (
           <div
-            className="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm"
-            style={{ backgroundColor: `${meta.sectionColor}18`, border: `1.5px solid ${meta.sectionColor}40` }}
+            className="shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl border border-stone-200 bg-stone-50"
+            style={{ color: meta.sectionColor }}
           >
-            <Icon size={36} />
+            <Icon size={26} />
           </div>
         )}
       </div>

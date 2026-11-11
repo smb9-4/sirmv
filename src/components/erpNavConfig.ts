@@ -126,7 +126,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionColor: '#0284C7',
     sectionIcon: IconAdmAllDevices,
     sectionIconSrc: '/admin-section-icons/device-admin.png',
-    sidebarIconSrc: '/admin-sidebar-icons/device-admin.png',
+    sidebarIconSrc: '/admin-section-icons/device-admin.png',
     items: [
       { id: 'adm_all_devices',      label: 'All Devices',       icon: IconAdmAllDevices,      colorAccent: '#0284C7' },
       { id: 'adm_device_inventory', label: 'Device Inventory',  icon: IconAdmDeviceInventory, colorAccent: '#EA580C' },
@@ -141,7 +141,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionColor: '#DC2626',
     sectionIcon: BookOpen,
     sectionIconSrc: '/admin-section-icons/exam-control.png',
-    sidebarIconSrc: '/admin-sidebar-icons/exam-control.png',
+    sidebarIconSrc: '/admin-section-icons/exam-control.png',
     items: [
       { id: 'adm_live_monitoring',  label: 'Live Monitoring',   icon: IconAdmLiveMonitoring,  colorAccent: '#DC2626', badge: 'LIVE' },
       { id: 'adm_time_management',  label: 'Time Management',   icon: IconAdmTimeManagement,  colorAccent: '#D97706' },
@@ -156,7 +156,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionColor: '#7C3AED',
     sectionIcon: IconAdmAppUsage,
     sectionIconSrc: '/admin-section-icons/student-activity.png',
-    sidebarIconSrc: '/admin-sidebar-icons/student-activity.png',
+    sidebarIconSrc: '/admin-section-icons/student-activity.png',
     items: [
       { id: 'adm_app_usage',        label: 'App Usage',         icon: IconAdmAppUsage,        colorAccent: '#7C3AED' },
       { id: 'adm_tab_activity',     label: 'Tab Activity',      icon: IconAdmTabActivity,     colorAccent: '#6366F1' },
@@ -171,7 +171,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionColor: '#B91C1C',
     sectionIcon: IconAdmRemoteLock,
     sectionIconSrc: '/admin-section-icons/security-remote.png',
-    sidebarIconSrc: '/admin-sidebar-icons/security-remote.png',
+    sidebarIconSrc: '/admin-section-icons/security-remote.png',
     items: [
       { id: 'adm_app_deployment',   label: 'App Deployment',    icon: IconAdmAppDeployment,   colorAccent: '#059669' },
       { id: 'adm_os_updates',       label: 'OS Updates',        icon: IconAdmOSUpdates,       colorAccent: '#2563EB' },
@@ -186,7 +186,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     sectionColor: '#065F46',
     sectionIcon: IconAdmOverallReports,
     sectionIconSrc: '/admin-section-icons/reports-intelligence.png',
-    sidebarIconSrc: '/admin-sidebar-icons/reports-intelligence.png',
+    sidebarIconSrc: '/admin-section-icons/reports-intelligence.png',
     items: [
       { id: 'adm_overall_reports',  label: 'Overall Reports',   icon: IconAdmOverallReports,  colorAccent: '#065F46' },
       { id: 'adm_maintenance',      label: 'Maintenance',       icon: IconAdmMaintenance,     colorAccent: '#92400E' },
