@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 
 export interface CardPreviewItem {
   label: string;
@@ -34,8 +34,7 @@ export default function ExpandableDashboardCard({
   onHoverEnd,
 }: ExpandableDashboardCardProps) {
   return (
-    // Outer slot maintains exact grid cell footprint so sibling cards and lower rows NEVER move or stretch!
-    <div className="relative h-[218px] w-full">
+    <div className="relative h-[174px] w-full">
       <motion.button
         type="button"
         aria-label={`Open ${card.title} module`}
@@ -49,108 +48,48 @@ export default function ExpandableDashboardCard({
           card.onAction();
         }}
         animate={{
-          borderColor: isExpanded ? '#E5BD55' : 'rgba(229, 231, 235, 0.9)',
+          borderColor: isExpanded ? '#E5BD55' : '#EEF0F4',
           boxShadow: isExpanded
-            ? '0 25px 45px -10px rgba(101, 0, 0, 0.2), 0 10px 25px -5px rgba(229, 189, 85, 0.28)'
-            : '0 2px 10px -2px rgba(0, 0, 0, 0.05)',
+            ? '0 16px 30px -8px rgba(101, 0, 0, 0.14), 0 4px 18px rgba(229, 189, 85, 0.14)'
+            : '0 2px 6px rgba(31, 41, 55, 0.025)',
+          y: isExpanded ? -1 : 0,
         }}
         transition={{
           borderColor: { duration: 0.2 },
           boxShadow: { duration: 0.2 },
+          y: { duration: 0.18, ease: 'easeOut' },
         }}
-        className={`group appearance-none bg-white rounded-3xl border cursor-pointer select-none overflow-hidden flex h-full w-full flex-col justify-start text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000] ${
-          isExpanded
-            ? 'absolute inset-0 z-30 px-4 pt-3 pb-10'
-            : 'relative p-5 md:p-6'
-        }`}
-        style={{
-          borderWidth: isExpanded ? '2px' : '1px',
-        }}
+        className="group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[26px] border bg-white p-4 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A60000]"
+        style={{ borderWidth: '1px' }}
       >
-        {/* Top Accent line */}
         <motion.div
           animate={{
-            backgroundColor: isExpanded ? '#A60000' : '#650000',
-            height: isExpanded ? 5 : 3,
+            y: isExpanded ? [0, -2, 0] : 0,
+            scale: isExpanded ? [1, 1.02, 1] : 1,
           }}
-          transition={{ duration: 0.2 }}
-          className="absolute top-0 left-0 right-0"
-        />
+          transition={{
+            y: { duration: 0.5, repeat: isExpanded ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
+            scale: { duration: 0.5, repeat: isExpanded ? Infinity : 0, repeatDelay: 0.26, ease: 'easeOut' },
+          }}
+          className="mb-2 flex h-[68px] w-[68px] items-center justify-center"
+        >
+          <img
+            src={card.iconSrc}
+            alt=""
+            className="h-full w-full object-contain transition-[filter] duration-300"
+            style={{
+              filter: isExpanded
+                ? 'drop-shadow(0 0 11px rgba(229, 189, 85, 0.7))'
+                : undefined,
+            }}
+          />
+        </motion.div>
 
-        {/* Main Visible Card Face */}
-        <div>
-          <div className={`flex items-center justify-between ${isExpanded ? 'mb-0' : 'mb-3.5'}`}>
-            {/* Animated Icon with subtle bounce/rotation ONLY on the hovered card */}
-            <div className={`flex items-center justify-center ${isExpanded ? 'h-12 w-12' : 'h-16 w-16'}`}>
-              <img
-                src={card.iconSrc}
-                alt=""
-                className={`h-full w-full object-contain transition-[filter] ${
-                  isExpanded ? 'drop-shadow-[0_0_8px_#E6C28F]' : ''
-                } group-focus-visible:drop-shadow-[0_0_8px_#E6C28F]`}
-              />
-            </div>
-
-            <span
-              className="text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-black/5"
-              style={{ backgroundColor: card.badgeBg, color: card.badgeColor }}
-            >
-              {card.count}
-            </span>
-          </div>
-
-          <h3 className="font-black text-base md:text-[17px] text-stone-950 uppercase tracking-tight flex items-center justify-between">
-            <span>{card.title}</span>
-            <motion.span
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="text-stone-300 md:hidden"
-            >
-              <ChevronDown size={14} />
-            </motion.span>
-          </h3>
-
-          <p className={`text-xs text-stone-500 ${isExpanded ? 'mt-0.5 leading-4 line-clamp-1' : 'mt-1 leading-relaxed'} font-medium`}>
-            {card.desc}
-          </p>
-        </div>
-
-        {/* Smoothly Expanding Information Panel Below - Only in the hovered card */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{
-                type: 'spring',
-                stiffness: 380,
-                damping: 28,
-                opacity: { duration: 0.18 },
-              }}
-              className="mt-3 overflow-hidden pt-1 border-t border-[#E5BD55]/40 space-y-0.5"
-            >
-              <div className="space-y-4">
-                {card.previews.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between gap-2 text-stone-700"
-                  >
-                    <span className="truncate text-[11px] leading-4 text-stone-500">{item.label}:</span>
-                    <span
-                      className={`max-w-[65%] truncate text-[11px] leading-4 font-bold ${
-                        item.highlight ? 'text-[#A60000]' : 'text-stone-900'
-                      }`}
-                    >
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <h3 className={`text-[15px] font-bold tracking-tight transition-colors ${
+          isExpanded ? 'text-[#A60000]' : 'text-[#3D405B]'
+        }`}>
+          {card.title}
+        </h3>
 
         <AnimatePresence>
           {isExpanded && (
@@ -158,11 +97,13 @@ export default function ExpandableDashboardCard({
               initial={{ y: 40 }}
               animate={{ y: 0 }}
               exit={{ y: 40 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="absolute inset-x-0 bottom-0 flex h-10 items-center justify-center gap-2 bg-[#A60000] text-xs font-black text-white"
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="absolute inset-x-0 bottom-0 flex h-8 items-center justify-center gap-2 bg-[#A60000] text-xs font-bold text-white"
             >
               <span>Open</span>
-              <ArrowRight size={15} className={`transition-transform ${isExpanded ? 'translate-x-1' : ''}`} />
+              <motion.span animate={{ x: 2 }} transition={{ duration: 0.18 }}>
+                <ArrowRight size={16} />
+              </motion.span>
             </motion.div>
           )}
         </AnimatePresence>

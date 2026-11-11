@@ -50,10 +50,10 @@
   }
 
   .student-dashboard-welcome-name {
-    font-family: 'Great Vibes', cursive !important;
-    font-size: 1.15em;
-    font-weight: 400 !important;
-    letter-spacing: normal !important;
+    font-family: inherit !important;
+    font-size: inherit;
+    font-weight: 900 !important;
+    letter-spacing: -0.015em !important;
     -webkit-text-stroke: 0 !important;
   }
 

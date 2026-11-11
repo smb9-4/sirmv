@@ -93,7 +93,7 @@ export default function StudentDashboard() {
     {
       id: 'calendar',
       title: 'CALENDAR',
-      iconSrc: '/student-section-icons/timetable.png',
+      iconSrc: '/student-section-icons/calendar.png',
       desc: 'Monthly JEE, NEET, and theory exam schedule.',
       count: 'Weekly Exams',
       path: '/student/calendar',

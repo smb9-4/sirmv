@@ -44,8 +44,6 @@ export const ROLE_PROFILES: Record<'admin' | 'student', RoleProfile> = {
 interface ERPHeaderProps {
   currentRole: UserRoleType;
   onRoleChange: (newRole: UserRoleType) => void;
-  onToggleSidebar?: () => void;
-  isSidebarExpanded?: boolean;
   unreadAnnouncements: Announcement[];
   onOpenAnnouncement: (announcement: Announcement) => void;
 }
@@ -53,8 +51,6 @@ interface ERPHeaderProps {
 export default function ERPHeader({
   currentRole,
   onRoleChange,
-  onToggleSidebar,
-  isSidebarExpanded,
   unreadAnnouncements,
   onOpenAnnouncement,
 }: ERPHeaderProps) {
@@ -82,23 +78,9 @@ export default function ERPHeader({
   }, []);
 
   return (
-    <header className="w-full px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ backgroundColor: '#610000' }}>
-      {/* Left side: Menu and College Logo */}
+    <header className="w-full px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_rgba(0,0,0,0.08)]" style={{ backgroundColor: normalizedRole === 'student' ? '#A41419' : '#610000' }}>
+      {/* Left side: College Logo */}
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          title={isSidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
-          className="w-9 h-9 rounded-[20%] border border-white/20 bg-white/5 hover:bg-white/10 flex items-center justify-center shadow-sm transition-all"
-        >
-          <span className="flex flex-col items-center justify-center gap-1.5">
-            <span className="block w-4 h-0.5 rounded-full bg-white" />
-            <span className="block w-4 h-0.5 rounded-full bg-white" />
-            <span className="block w-4 h-0.5 rounded-full bg-white" />
-          </span>
-        </button>
-
         <div className="w-9 h-9 rounded-[20%] bg-white/10 border border-white/15 overflow-hidden flex items-center justify-center p-1 shadow-sm">
           <img src="/logo.png?v=3" alt="Sir MV" className="w-full h-full object-contain" />
         </div>
@@ -194,8 +176,10 @@ export default function ERPHeader({
           >
             {/* Initial Avatar */}
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs text-white shadow-sm"
-              style={{ backgroundColor: activeProfile.color }}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-sm ${
+                normalizedRole === 'student' ? 'text-[#500000]' : 'text-white'
+              }`}
+              style={{ backgroundColor: normalizedRole === 'student' ? '#E5BD55' : activeProfile.color }}
             >
               {activeProfile.initial}
             </div>

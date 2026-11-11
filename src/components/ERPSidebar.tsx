@@ -17,22 +17,25 @@ interface ERPSidebarProps {
   onSelectModule: (moduleId: ERPModuleId) => void;
   currentRole?: UserRoleType;
   isExpanded?: boolean;
+  isLocked?: boolean;
   onExpandSidebar?: () => void;
+  onHoverChange?: (hovered: boolean) => void;
+  onToggleLock?: () => void;
   activeAdminSectionId?: string | null;
   onSelectAdminSection: (sectionId: string) => void;
 }
 
 const SECTION_ICON_IMAGES: Partial<Record<ERPModuleId, string>> = {
   dashboard: '/sidebar-icons/dashboard.png',
-  announcements: '/sidebar-icons/announcements.png',
-  tests: '/sidebar-icons/exams.png',
-  notes: '/sidebar-icons/notes.png',
-  materials: '/sidebar-icons/materials.png',
-  reports: '/sidebar-icons/results.png',
-  timetable: '/sidebar-icons/timetable.png',
-  college_calendar: '/sidebar-icons/timetable.png',
-  complaints: '/sidebar-icons/complaints.png',
-  attendance: '/sidebar-icons/attendance.png',
+  announcements: '/student-section-icons/announcements.png',
+  tests: '/student-section-icons/exams.png',
+  notes: '/student-section-icons/notes.png',
+  materials: '/student-section-icons/materials.png',
+  reports: '/student-section-icons/results.png',
+  timetable: '/student-section-icons/timetable.png',
+  college_calendar: '/student-section-icons/calendar.png',
+  complaints: '/student-section-icons/complaints.png',
+  attendance: '/student-section-icons/attendance.png',
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -60,17 +63,13 @@ function FlatNavItem({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => onSelectModule(item.id)}
-        whileHover={{
-          scale: isExpanded ? 1.02 : 1.05,
-          y: isExpanded ? 0 : -1,
-          boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)',
-        }}
+        whileHover={{ boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)' }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 450, damping: 24, mass: 0.5 }}
         className={`group relative transition-all duration-200 cursor-pointer ${
           isExpanded
-            ? 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left'
-            : 'w-[68px] mx-auto py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
+            ? 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left max-[480px]:flex-col max-[480px]:items-center max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2 max-[480px]:text-center'
+            : 'w-full mx-auto py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
         } ${
           isActive
             ? 'bg-[#F3F3F3] text-[#610000] border border-[#E6C28F] shadow-xs'
@@ -90,11 +89,11 @@ function FlatNavItem({
             src={iconImage}
             alt=""
             className={`shrink-0 object-contain transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F] ${
-              isExpanded ? 'w-6 h-6' : 'w-[38px] h-[38px]'
+              isExpanded ? 'w-6 h-6 max-[480px]:w-[34px] max-[480px]:h-[34px]' : 'w-[38px] h-[38px]'
             }`}
           />
         ) : (
-          <div className={`flex items-center justify-center shrink-0 transition-all ${isExpanded ? 'w-6 h-6' : 'w-[38px] h-[38px]'}`}>
+          <div className={`flex items-center justify-center shrink-0 transition-all ${          isExpanded ? 'w-6 h-6 max-[480px]:w-[34px] max-[480px]:h-[34px]' : 'w-[38px] h-[38px]'}`}>
             <Icon
               size={isExpanded ? 19 : 34}
               className="transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
@@ -119,7 +118,7 @@ function FlatNavItem({
         )}
 
         {isExpanded && (
-          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal flex-1 truncate ${
+          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px] ${
             isActive ? 'text-[#610000]' : 'text-[#FFE59A]'
           }`}>
             {item.label}
@@ -233,7 +232,10 @@ export default function ERPSidebar({
   onSelectModule,
   currentRole = 'principal',
   isExpanded: externalExpanded,
+  isLocked = false,
   onExpandSidebar,
+  onHoverChange,
+  onToggleLock,
   activeAdminSectionId = null,
   onSelectAdminSection,
 }: ERPSidebarProps) {
@@ -241,16 +243,27 @@ export default function ERPSidebar({
 
   const isAdmin = currentRole === 'admin';
   const isStudent = currentRole === 'student';
+  const sidebarWidth = isStudent ? 68 : 86;
+  const expandedSidebarWidth = isStudent ? 220 : 236;
 
   // For non-admin, non-student roles use ALL_NAV_ITEMS flat list
   const flatItems = isStudent ? STUDENT_NAV_ITEMS : ALL_NAV_ITEMS;
 
   return (
     <motion.aside
-      animate={{ width: isExpanded ? 236 : 86 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-      className={`shrink-0 bg-[#610000] border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
-        isExpanded ? 'w-[236px] min-w-[236px]' : 'w-[86px] min-w-[86px]'
+      animate={{ width: isExpanded ? expandedSidebarWidth : sidebarWidth }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }}
+      onPointerEnter={() => onHoverChange?.(true)}
+      onPointerLeave={() => onHoverChange?.(false)}
+      style={{
+        maxWidth: isStudent && isExpanded ? 'min(220px, max(110px, 44vw))' : undefined,
+      }}
+      className={`shrink-0 border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
+        isStudent ? 'bg-[#8F1016]' : 'bg-[#610000]'
+      } ${
+        isExpanded
+          ? isStudent ? 'w-[220px] min-w-0' : 'w-[236px] min-w-[236px]'
+          : isStudent ? 'w-[68px] min-w-[68px]' : 'w-[86px] min-w-[86px]'
       }`}
     >
       {/* ── TOP HEADER ───────────────────────────────────────────── */}
@@ -325,6 +338,22 @@ export default function ERPSidebar({
             )}
           </div>
         )}
+        <button
+          type="button"
+          onClick={onToggleLock}
+          aria-label={isLocked ? 'Unpin names' : 'Keep names visible'}
+          aria-pressed={isLocked}
+          title={isLocked ? 'Unpin names' : 'Keep names visible'}
+          className={`mt-2 flex h-7 w-7 items-center justify-center rounded-lg text-[#FFE59A] transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFE59A] ${
+            isLocked ? 'bg-white/10' : ''
+          }`}
+        >
+          <img
+            src="/sidebar-icons/sidebar-toggle.png"
+            alt=""
+            className="h-[18px] w-[18px] object-contain"
+          />
+        </button>
       </div>
 
       {/* ── NAVIGATION ───────────────────────────────────────────── */}

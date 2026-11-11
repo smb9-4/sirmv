@@ -303,8 +303,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const [reviewExamModal, setReviewExamModal] = useState<PastExamRecord | null>(null);
   const [examArchiveFilter, setExamArchiveFilter] = useState<ExamArchiveFilter>('all');
 
-  // Collapsible Sidebar State (3 Horizontal Lines)
-  const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [sidebarLocked, setSidebarLocked] = useState(false);
+  const sidebarExpanded = sidebarHovered || sidebarLocked;
+  const sidebarWidth = currentRole === 'student'
+    ? sidebarExpanded ? 220 : 68
+    : sidebarExpanded ? 236 : 86;
   const [activeAdminSectionId, setActiveAdminSectionId] = useState<string | null>(null);
   const [hoveredAdminSectionId, setHoveredAdminSectionId] = useState<string | null>(null);
   const [hoveredAdminModuleId, setHoveredAdminModuleId] = useState<ERPModuleId | null>(null);
@@ -424,7 +428,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const STUDENT_DASHBOARD_CARDS: DashboardCardConfig[] = [
     {
       id: 'announcements',
-      title: 'ANNOUNCEMENTS',
+      title: 'Announcements',
       iconSrc: '/student-section-icons/announcements.png',
       desc: 'Official circulars from Principal, HOD, and faculty.',
       count: '3 New Notices',
@@ -438,7 +442,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'exams',
-      title: 'EXAMS',
+      title: 'Exams',
       iconSrc: '/student-section-icons/exams.png',
       desc: 'Live examinations & competitive mock test series.',
       count: '3 Available',
@@ -452,7 +456,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'notes',
-      title: 'NOTES',
+      title: 'Notes',
       iconSrc: '/student-section-icons/notes.png',
       desc: 'Curated subject notes, chapter slides & PDF guides.',
       count: '8 Documents',
@@ -466,7 +470,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'materials',
-      title: 'STUDY MATERIALS',
+      title: 'Study Materials',
       iconSrc: '/student-section-icons/materials.png',
       desc: 'Videos, worksheets, question banks & prep kits.',
       count: '14 Resources',
@@ -480,7 +484,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'results',
-      title: 'RESULTS',
+      title: 'Results',
       iconSrc: '/student-section-icons/results.png',
       desc: 'Performance analytics, scores & question-by-question review.',
       count: '70.7% Recent',
@@ -494,7 +498,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'timetable',
-      title: 'TIMETABLE',
+      title: 'Timetable',
       iconSrc: '/student-section-icons/timetable.png',
       desc: 'Daily lectures, practical periods, and subject schedule.',
       count: 'Weekly Schedule',
@@ -508,8 +512,8 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'calendar',
-      title: 'CALENDAR',
-      iconSrc: '/student-section-icons/timetable.png',
+      title: 'Calendar',
+      iconSrc: '/student-section-icons/calendar.png',
       desc: 'Monthly JEE, NEET, and theory exam schedule.',
       count: 'Weekly Exams',
       badgeBg: '#FFFFFF',
@@ -522,7 +526,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'complaints',
-      title: 'COMPLAINT BOX',
+      title: 'Complaint Box',
       iconSrc: '/student-section-icons/complaints.png',
       desc: 'Grievance redressal cell for academic & facility issues.',
       count: '1 Active Case',
@@ -536,7 +540,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     },
     {
       id: 'attendance',
-      title: 'ATTENDANCE',
+      title: 'Attendance',
       iconSrc: '/student-section-icons/attendance.png',
       desc: 'Subject-wise class attendance, logs & warning metrics.',
       count: '86.4% Safe',
@@ -592,8 +596,6 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         <ERPHeader
           currentRole={currentRole}
           onRoleChange={handleRoleChange}
-          onToggleSidebar={() => setSidebarExpanded((prev) => !prev)}
-          isSidebarExpanded={sidebarExpanded}
           unreadAnnouncements={unreadAnnouncements}
           onOpenAnnouncement={handleOpenAnnouncement}
         />
@@ -620,14 +622,25 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           }}
           currentRole={currentRole}
           isExpanded={sidebarExpanded}
-          onExpandSidebar={() => setSidebarExpanded(true)}
+          isLocked={sidebarLocked}
+          onHoverChange={setSidebarHovered}
+          onToggleLock={() => setSidebarLocked((locked) => !locked)}
+          onExpandSidebar={() => setSidebarLocked(true)}
           activeAdminSectionId={activeAdminSectionId}
         />
 
-        <div className="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div
+          className={`min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden ${
+            currentRole === 'student' && activeModule === 'dashboard' ? 'bg-[#F3F5FA]' : ''
+          }`}
+        >
           {/* Right Content Area with Smooth Horizontal Slide Transitions */}
           <main
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6"
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain w-full mx-auto space-y-6 ${
+              currentRole === 'student' && activeModule === 'dashboard'
+                ? 'max-w-6xl px-4 py-6 md:px-8 md:py-12'
+                : 'max-w-7xl p-6 md:p-8'
+            }`}
             onPointerDownCapture={activeModule === 'dashboard' ? handleDashboardPointerDown : undefined}
           >
             <AnimatePresence mode="wait">
@@ -636,14 +649,15 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                   ROLE = STUDENT VIEW: 8 INTERACTIVE EXPANDABLE CARDS
                   ───────────────────────────────────────────────────────────── */}
               {currentRole === 'student' && activeModule === 'dashboard' && (
-                <div className="space-y-6">
+                <div className="space-y-6 md:space-y-7">
                   {/* Student Welcome Banner */}
                   <div
-                    className="rounded-3xl p-6 md:p-8 text-white shadow-md relative overflow-hidden"
+                    className="rounded-2xl p-6 md:p-7 text-white shadow-md relative overflow-hidden"
                     style={{
-                      background: 'linear-gradient(135deg, #500000 0%, #650000 65%, #A60000 100%)',
+                      backgroundColor: '#991117',
                     }}
                   >
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[#E5BD55]" />
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                       <div className="space-y-2.5">
                         <div className="flex flex-wrap items-center gap-2">
@@ -670,24 +684,22 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                           </div>
                         </div>
 
-                        <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                          Welcome back, <span className="student-dashboard-welcome-name">Rahul Sharma!</span>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+                          Good evening, <span className="student-dashboard-welcome-name text-[#FFE59A]">Rahul Sharma</span>
                         </h1>
-                        <p className="text-sm text-white/90">
-                          Roll No: <strong className="text-white">24PUC101</strong> • <span className="text-[#FFE59A] font-bold">{pucYear} Science (PCMB / PCMC)</span>
+                        <p className="text-sm font-semibold text-white/95">
+                          Student Academic Portal
                         </p>
-                        <p className="text-xs text-white/75 flex flex-wrap gap-1.5 pt-0.5">
-                          <span className="font-semibold text-white/90">PUC Core Subjects:</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Physics</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Chemistry</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Mathematics</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Biology</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/10 font-bold">Comp Science</span>
+                        <p className="text-xs text-white/75">
+                          Roll No: <strong className="text-white">24PUC101</strong> • {pucYear} Science (PCMB / PCMC)
+                        </p>
+                        <p className="text-[11px] text-white/70">
+                          Core Subjects: Physics, Chemistry, Mathematics, Biology, Comp Science
                         </p>
                       </div>
 
                       {/* Animated Student Quick Metric Badges */}
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-3 gap-2.5">
                         <div className="bg-black/30 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 text-center">
                           <span className="text-[10px] uppercase font-bold text-white/70 block">Cohort Rank</span>
                           <span className="text-2xl font-black text-[#FFE59A] block mt-0.5">
@@ -717,21 +729,21 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
                   {/* Section Title */}
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-base font-black text-stone-900 uppercase tracking-wider">
-                        INTERACTIVE ACADEMIC MODULES (9)
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-black text-[#172033] tracking-tight">
+                        Your workspace
                       </h2>
-                      <p className="text-xs text-stone-500">
-                        Hover or tap any card to smoothly expand and reveal contextual operational details
-                      </p>
+                      <span className="rounded-full border border-[#E5BD55]/40 bg-white px-2.5 py-1 text-[11px] font-bold text-[#8B5E16]">
+                        {STUDENT_DASHBOARD_CARDS.length} modules
+                      </span>
                     </div>
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-stone-200 text-stone-700">
-                      Expand on Hover / Tap
-                    </span>
+                    <div className="text-[11px] font-medium text-slate-400">
+                      Select a module to open
+                    </div>
                   </div>
 
                   {/* 3. EIGHT STUDENT DASHBOARD CARDS WITH HOVER EXPANSION */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-x-6 lg:gap-y-7 items-start">
                     {STUDENT_DASHBOARD_CARDS.map((card) => (
                       <ExpandableDashboardCard
                         key={card.id}
@@ -3275,7 +3287,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 <AdminModuleView
                   moduleId={activeModule}
                   onBack={() => setActiveModule('dashboard')}
-                  sidebarWidth={sidebarExpanded ? 236 : 86}
+                  sidebarWidth={sidebarWidth}
                 />
               )}
 
@@ -3341,14 +3353,14 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       <StudentDetailModal
         student={selectedStudent}
         onClose={() => setSelectedStudent(null)}
-        sidebarWidth={sidebarExpanded ? 236 : 86}
+        sidebarWidth={sidebarWidth}
       />
 
       {/* Deep Diagnostic Results Review Modal (Right answer ticked, option chosen, exact time taken) */}
       <ExamMCQReviewModal
         exam={reviewExamModal}
         onClose={() => setReviewExamModal(null)}
-        sidebarWidth={sidebarExpanded ? 236 : 86}
+        sidebarWidth={sidebarWidth}
       />
     </div>
   );
