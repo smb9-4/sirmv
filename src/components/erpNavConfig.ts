@@ -68,6 +68,7 @@ export type ERPModuleId =
   | 'reported_issues'
   | 'hostel'
   | 'gate_pass'
+  | 'parent_connect'
   // ── Admin / Tab Management Module IDs ──────────────────────────
   // Section 1: Device Administration
   | 'adm_all_devices'
@@ -229,6 +230,7 @@ export const STUDENT_NAV_ITEMS: NavItemConfig[] = [
   { id: 'college_calendar',label:'Calendar',    icon: IconVNavCalendar,     colorAccent: '#DC2626' },
   { id: 'attendance',     label: 'Attendance',  icon: IconVNavAttendance,   colorAccent: '#10B981' },
   { id: 'complaints',     label: 'Complaints',  icon: IconVNavComplaints,   colorAccent: '#F59E0B' },
+  { id: 'parent_connect', label: 'Parent Connect', icon: IconVNavComplaints, colorAccent: '#10B981' },
 ];
 
 export const VERTICAL_NAV_ITEMS = ALL_NAV_ITEMS;

@@ -34,6 +34,7 @@ const SECTION_ICON_IMAGES: Partial<Record<ERPModuleId, string>> = {
   college_calendar: '/student-section-icons/calendar.png',
   complaints: '/student-section-icons/complaints.png',
   attendance: '/student-section-icons/attendance.png',
+  parent_connect: '/student-section-icons/parent-connect.png',
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -43,12 +44,16 @@ function FlatNavItem({
   item,
   isActive,
   isExpanded,
+  stackedLayout = false,
+  disableAnimations = false,
   labelsBelowIcon = false,
   onSelectModule,
 }: {
   item: NavItemConfig;
   isActive: boolean;
   isExpanded: boolean;
+  stackedLayout?: boolean;
+  disableAnimations?: boolean;
   labelsBelowIcon?: boolean;
   onSelectModule: (id: ERPModuleId) => void;
 }) {
@@ -60,14 +65,18 @@ function FlatNavItem({
     <div className="relative w-full px-0.5">
       <motion.button
         aria-current={isActive ? 'page' : undefined}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        aria-label={item.label}
+        title={disableAnimations && !isExpanded ? item.label : undefined}
+        onMouseEnter={disableAnimations ? undefined : () => setHovered(true)}
+        onMouseLeave={disableAnimations ? undefined : () => setHovered(false)}
         onClick={() => onSelectModule(item.id)}
-        whileHover={{ boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)' }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: 'spring', stiffness: 450, damping: 24, mass: 0.5 }}
-        className={`group relative transition-all duration-200 cursor-pointer ${
-          isExpanded
+        whileHover={disableAnimations ? undefined : { boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)' }}
+        whileTap={disableAnimations ? undefined : { scale: 0.96 }}
+        transition={disableAnimations ? { duration: 0 } : { type: 'spring', stiffness: 450, damping: 24, mass: 0.5 }}
+        className={`group relative cursor-pointer ${disableAnimations ? '' : 'transition-all duration-200'} ${
+          stackedLayout
+            ? 'w-full mx-auto px-1 py-2 rounded-xl flex flex-col items-center justify-center gap-1 text-center'
+            : isExpanded
             ? labelsBelowIcon
               ? 'w-full py-2.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 text-center'
               : 'w-full py-2.5 px-3 rounded-2xl flex flex-row items-center gap-3 text-left max-[480px]:flex-col max-[480px]:items-center max-[480px]:gap-1 max-[480px]:px-1 max-[480px]:py-2 max-[480px]:text-center'
@@ -79,14 +88,26 @@ function FlatNavItem({
         }`}
       >
         {isActive && (
-          <motion.div
-            layoutId="activeVerticalIndicator"
-            className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#610000]"
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          />
+          disableAnimations ? (
+            <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#FFE59A]" />
+          ) : (
+            <motion.div
+              layoutId="activeVerticalIndicator"
+              className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#610000]"
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            />
+          )
         )}
 
-        {iconImage ? labelsBelowIcon ? (
+        {stackedLayout ? (
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+            {iconImage ? (
+              <img src={iconImage} alt="" className="h-full w-full object-contain" />
+            ) : (
+              <Icon size={28} className="text-[#610000]" />
+            )}
+          </span>
+        ) : iconImage ? labelsBelowIcon ? (
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
             <img
               src={iconImage}
@@ -119,7 +140,7 @@ function FlatNavItem({
           )
         )}
 
-        {!isExpanded && (
+        {!stackedLayout && !isExpanded && (
           <AnimatePresence>
             {hovered && (
               <motion.span
@@ -136,22 +157,26 @@ function FlatNavItem({
         )}
 
         {isExpanded && (
-          <span className={`leading-tight transition-all block text-[13px] font-black tracking-normal text-white group-hover:text-[#FFE59A] ${
-            labelsBelowIcon
-              ? 'w-full flex-none whitespace-normal text-center text-[9px]'
-              : 'flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px]'
+          <span className={`block leading-tight text-white group-hover:text-[#FFE59A] ${
+            stackedLayout
+              ? 'w-full flex-none whitespace-normal px-0.5 text-center text-[10px] font-semibold'
+              : `transition-all text-[13px] font-black tracking-normal ${
+                labelsBelowIcon
+                  ? 'w-full flex-none whitespace-normal text-center text-[9px]'
+                  : 'flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px]'
+              }`
           }`}
           >
             {item.label}
           </span>
         )}
 
-        {item.badge && isExpanded && (
+        {item.badge && isExpanded && !stackedLayout && (
           <span className={`ml-auto ${labelsBelowIcon ? 'text-[8px]' : 'text-[10px]'} px-2 py-0.5 rounded-full font-black uppercase shadow-2xs border ${
             isActive
               ? 'bg-[#610000] text-white border-[#610000]'
               : item.badge === 'Live' || item.badge === 'LIVE'
-              ? 'bg-[#EF4444] text-white border-white animate-pulse'
+              ? `bg-[#EF4444] text-white border-white ${disableAnimations ? '' : 'animate-pulse'}`
               : 'bg-[#EF4444] text-white border-white'
           }`}>
             {item.badge}
@@ -171,12 +196,16 @@ function AdminSectionGroup({
   activeModule,
   activeAdminSectionId,
   isExpanded: sidebarExpanded,
+  stackedLayout = false,
+  disableAnimations = false,
   onSelectSection,
 }: {
   section: AdminNavSection;
   activeModule: ERPModuleId;
   activeAdminSectionId: string | null;
   isExpanded: boolean;
+  stackedLayout?: boolean;
+  disableAnimations?: boolean;
   onSelectSection: (sectionId: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -188,19 +217,26 @@ function AdminSectionGroup({
   return (
     <button
       onClick={() => onSelectSection(section.sectionId)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={disableAnimations ? undefined : () => setHovered(true)}
+      onMouseLeave={disableAnimations ? undefined : () => setHovered(false)}
       aria-current={isActive ? 'page' : undefined}
-      className={`group relative w-full transition-all duration-150 rounded-xl ${
-        sidebarExpanded
-          ? 'px-1 py-2 flex flex-col items-center justify-center gap-1 text-center'
-          : 'flex-col px-1 py-2 flex items-center justify-center gap-1'
+      aria-label={section.sectionLabel}
+      className={`group relative w-full rounded-xl ${disableAnimations ? '' : 'transition-all duration-150'} ${
+        stackedLayout
+          ? sidebarExpanded
+            ? 'px-1 py-2 flex flex-col items-center justify-center gap-1 text-center'
+            : 'px-1 py-2 flex flex-col items-center justify-center gap-1 text-center'
+          : sidebarExpanded
+            ? 'px-1 py-2 flex flex-col items-center justify-center gap-1 text-center'
+            : 'flex-col px-1 py-2 flex items-center justify-center gap-1'
       } ${
         isActive
           ? 'bg-white/10 text-white border border-white/20 shadow-xs'
           : 'text-white border border-transparent hover:bg-white/10 hover:text-[#FFE59A]'
       }`}
-      title={sidebarExpanded ? section.sectionLabel : undefined}
+      title={stackedLayout
+        ? !sidebarExpanded ? section.sectionLabel : undefined
+        : sidebarExpanded ? section.sectionLabel : undefined}
     >
       {isActive && (
         <span className="absolute left-0 top-2 bottom-2 w-1.5 rounded-r-full bg-[#FFE59A]" />
@@ -210,20 +246,24 @@ function AdminSectionGroup({
           <img
             src={section.sidebarIconSrc}
             alt=""
-            className="h-full w-full object-contain transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+            className={`h-full w-full object-contain ${disableAnimations ? '' : 'transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]'}`}
           />
         ) : (
           <SectionIcon
             size={28}
-            className="text-[#610000] transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]"
+            className={`text-[#610000] ${disableAnimations ? '' : 'transition-[filter] group-hover:drop-shadow-[0_0_8px_#E6C28F]'}`}
           />
         )}
       </span>
       {sidebarExpanded ? (
-        <span className="w-full flex-none whitespace-normal text-center text-[9px] font-black uppercase leading-tight tracking-wide text-white group-hover:text-[#FFE59A]">
+        <span className={`text-white group-hover:text-[#FFE59A] ${
+          stackedLayout
+            ? 'w-full flex-none whitespace-normal px-0.5 text-center text-[10px] font-semibold leading-tight'
+            : 'w-full flex-none whitespace-normal text-center text-[9px] font-black uppercase leading-tight tracking-wide'
+        }`}>
           {section.sectionLabel}
         </span>
-      ) : (
+      ) : !stackedLayout ? (
         <AnimatePresence>
           {hovered && (
             <motion.span
@@ -237,7 +277,7 @@ function AdminSectionGroup({
             </motion.span>
           )}
         </AnimatePresence>
-      )}
+      ) : null}
     </button>
   );
 }
@@ -261,39 +301,72 @@ export default function ERPSidebar({
   const isAdmin = currentRole === 'admin';
   const isStudent = currentRole === 'student';
   const isCompactPortal = isStudent || isAdmin;
-  const sidebarWidth = isCompactPortal ? 68 : 86;
-  const expandedSidebarWidth = isCompactPortal ? 89.76 : 236;
+  const disableAnimations = isAdmin;
+  const sidebarWidth = isCompactPortal ? 76 : 86;
+  const expandedSidebarWidth = isCompactPortal ? 126 : 236;
+  const sidebarToggleLabel = isLocked
+    ? 'Collapse sidebar'
+    : isExpanded ? 'Keep sidebar expanded' : 'Expand sidebar';
 
   // For non-admin, non-student roles use ALL_NAV_ITEMS flat list
   const flatItems = isStudent ? STUDENT_NAV_ITEMS : ALL_NAV_ITEMS;
 
+  const sidebarToggleButton = (
+    <button
+      type="button"
+      onClick={onToggleLock}
+      aria-label={sidebarToggleLabel}
+      aria-pressed={isLocked}
+      title={sidebarToggleLabel}
+      className={`flex h-7 w-7 items-center justify-center rounded-lg text-[#FFE59A] ${
+        disableAnimations ? '' : 'transition'
+      } hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFE59A] ${
+        !isCompactPortal || !isExpanded ? 'mt-2' : ''
+      } ${isLocked ? 'bg-white/10' : ''}`}
+    >
+      <img
+        src="/sidebar-icons/sidebar-toggle.png"
+        alt=""
+        className="h-[18px] w-[18px] object-contain"
+      />
+    </button>
+  );
+
   return (
     <motion.aside
       animate={{ width: isExpanded ? expandedSidebarWidth : sidebarWidth }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }}
+      transition={disableAnimations ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }}
       onPointerEnter={() => onHoverChange?.(true)}
       onPointerLeave={() => onHoverChange?.(false)}
-      style={{
-        maxWidth: isCompactPortal && isExpanded ? 'min(89.76px, max(68px, 17.952vw))' : undefined,
-      }}
       className={`shrink-0 border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
         isCompactPortal ? 'bg-[#8F1016]' : 'bg-[#610000]'
       } ${
         isExpanded
-          ? isCompactPortal ? 'w-[89.76px] min-w-0' : 'w-[236px] min-w-[236px]'
-          : isCompactPortal ? 'w-[68px] min-w-[68px]' : 'w-[86px] min-w-[86px]'
+          ? isCompactPortal ? 'w-[126px] min-w-[126px]' : 'w-[236px] min-w-[236px]'
+          : isCompactPortal ? 'w-[76px] min-w-[76px]' : 'w-[86px] min-w-[86px]'
       }`}
     >
       {/* ── TOP HEADER ───────────────────────────────────────────── */}
-      <div className="pt-1 pb-3 px-2 flex flex-col items-center border-b border-stone-100 w-full transition-all">
+      <div className={`pt-1 pb-3 px-2 flex flex-col items-center border-b border-stone-100 w-full ${disableAnimations ? '' : 'transition-all'}`}>
         {isCompactPortal ? (
-          <motion.div
-            animate={{ width: isExpanded ? 56 : 38, height: isExpanded ? 56 : 38 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="shrink-0 overflow-hidden rounded-[22%] border border-white/30 bg-white p-1 shadow-xs"
-          >
-            <img src="/updated_logo.png" alt="Sir MV College" className="h-full w-full object-contain" />
-          </motion.div>
+          <div className={`w-full ${isExpanded ? 'flex items-center justify-center gap-1' : 'flex flex-col items-center'}`}>
+            {disableAnimations ? (
+              <div className={`shrink-0 overflow-hidden rounded-[22%] border border-white/30 bg-white p-1 shadow-xs ${
+                isExpanded ? 'h-12 w-12' : 'h-10 w-10'
+              }`}>
+                <img src="/updated_logo.png" alt="Sir MV College" className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <motion.div
+                animate={{ width: isExpanded ? 48 : 40, height: isExpanded ? 48 : 40 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="shrink-0 overflow-hidden rounded-[22%] border border-white/30 bg-white p-1 shadow-xs"
+              >
+                <img src="/updated_logo.png" alt="Sir MV College" className="h-full w-full object-contain" />
+              </motion.div>
+            )}
+            {sidebarToggleButton}
+          </div>
         ) : (
           isExpanded ? (
             <div className="w-full flex items-center px-1">
@@ -326,26 +399,11 @@ export default function ERPSidebar({
             </div>
           )
         )}
-        <button
-          type="button"
-          onClick={onToggleLock}
-          aria-label={isLocked ? 'Unpin names' : 'Keep names visible'}
-          aria-pressed={isLocked}
-          title={isLocked ? 'Unpin names' : 'Keep names visible'}
-          className={`mt-2 flex h-7 w-7 items-center justify-center rounded-lg text-[#FFE59A] transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFE59A] ${
-            isLocked ? 'bg-white/10' : ''
-          }`}
-        >
-          <img
-            src="/sidebar-icons/sidebar-toggle.png"
-            alt=""
-            className="h-[18px] w-[18px] object-contain"
-          />
-        </button>
+        {!isCompactPortal && sidebarToggleButton}
       </div>
 
       {/* ── NAVIGATION ───────────────────────────────────────────── */}
-      <nav className="flex-1 w-full overflow-y-auto overflow-x-hidden py-2 px-1.5 no-scrollbar scroll-smooth">
+      <nav className={`flex-1 w-full overflow-y-auto overflow-x-hidden py-2 px-1.5 no-scrollbar ${disableAnimations ? 'scroll-auto' : 'scroll-smooth'}`}>
         {isAdmin ? (
           /* ── ADMIN: 5 Grouped Sections ── */
           <div className="space-y-1">
@@ -354,7 +412,8 @@ export default function ERPSidebar({
               item={{ id: 'dashboard', label: 'Dashboard', icon: IconVNavDashboard }}
               isActive={activeModule === 'dashboard' && !activeAdminSectionId}
               isExpanded={isExpanded}
-              labelsBelowIcon={isAdmin}
+              stackedLayout={isCompactPortal}
+              disableAnimations={disableAnimations}
               onSelectModule={onSelectModule}
             />
 
@@ -366,6 +425,8 @@ export default function ERPSidebar({
                 activeModule={activeModule}
                 activeAdminSectionId={activeAdminSectionId}
                 isExpanded={isExpanded}
+                stackedLayout={isCompactPortal}
+                disableAnimations={disableAnimations}
                 onSelectSection={onSelectAdminSection}
               />
             ))}
@@ -386,7 +447,8 @@ export default function ERPSidebar({
                   item={item}
                   isActive={isActive}
                   isExpanded={isExpanded}
-                  labelsBelowIcon={isStudent}
+                  stackedLayout={isCompactPortal}
+                  disableAnimations={disableAnimations}
                   onSelectModule={onSelectModule}
                 />
               );
@@ -400,10 +462,11 @@ export default function ERPSidebar({
         {isExpanded ? (
           <div className="w-full flex items-center justify-between px-2 py-1">
             <motion.button
-              whileHover={{ scale: 1.15, rotate: 180 }}
-              whileTap={{ scale: 0.92 }}
+              whileHover={disableAnimations ? undefined : { scale: 1.15, rotate: 180 }}
+              whileTap={disableAnimations ? undefined : { scale: 0.92 }}
+              transition={disableAnimations ? { duration: 0 } : undefined}
               onClick={() => onSelectModule('dashboard')}
-              className="p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] transition"
+              className={`p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] ${disableAnimations ? '' : 'transition'}`}
               title="Return to Dashboard"
             >
               <IconVNavPower size={20} />
@@ -413,10 +476,11 @@ export default function ERPSidebar({
         ) : (
           <div className="flex flex-col items-center gap-1">
             <motion.button
-              whileHover={{ scale: 1.15, rotate: 180 }}
-              whileTap={{ scale: 0.92 }}
+              whileHover={disableAnimations ? undefined : { scale: 1.15, rotate: 180 }}
+              whileTap={disableAnimations ? undefined : { scale: 0.92 }}
+              transition={disableAnimations ? { duration: 0 } : undefined}
               onClick={() => onSelectModule('dashboard')}
-              className="p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] transition"
+              className={`p-1.5 rounded-full hover:bg-red-50 text-[#FFE59A] hover:text-[#FFE59A] ${disableAnimations ? '' : 'transition'}`}
               title="Return to Dashboard"
             >
               <IconVNavPower size={29} />

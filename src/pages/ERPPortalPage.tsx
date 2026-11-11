@@ -97,6 +97,7 @@ const STUDENT_SECTION_TITLES: Partial<Record<ERPModuleId, string>> = {
   complaints: 'Complaint Box',
   reported_issues: 'Complaint Box',
   attendance: 'Attendance',
+  parent_connect: 'Parent Connect',
 };
 
 const STUDENT_SECTION_SUBTITLES: Partial<Record<ERPModuleId, string>> = {
@@ -114,6 +115,7 @@ const STUDENT_SECTION_SUBTITLES: Partial<Record<ERPModuleId, string>> = {
   complaints: 'Submit and track academic or facility concerns',
   reported_issues: 'Submit and track academic or facility concerns',
   attendance: 'Subject-wise attendance records and eligibility status',
+  parent_connect: 'A dedicated space for student-parent communication',
   adm_overall_reports: 'View institution-wide system summaries.',
   adm_student_reports: 'Review individual student records.',
   adm_maintenance: 'Track service and repair requests.',
@@ -331,10 +333,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
 
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarLocked, setSidebarLocked] = useState(false);
-  const sidebarExpanded = sidebarHovered || sidebarLocked;
   const compactSidebar = currentRole === 'student' || currentRole === 'admin';
+  const tabModeSidebar = currentRole === 'admin';
+  const sidebarExpanded = tabModeSidebar ? sidebarLocked : sidebarHovered || sidebarLocked;
   const sidebarWidth = compactSidebar
-    ? sidebarExpanded ? 89.76 : 68
+    ? sidebarExpanded ? 126 : 76
     : sidebarExpanded ? 236 : 86;
   const [activeAdminSectionId, setActiveAdminSectionId] = useState<string | null>(null);
   const [hoveredAdminSectionId, setHoveredAdminSectionId] = useState<string | null>(null);
@@ -454,7 +457,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
     { id: 'board_marks', label: 'Certificates & Ranks', icon: IconBoardMarks },
   ];
 
-  // 8 Interactive Student Dashboard Cards configuration with hover expansion previews
+  // 10 Interactive Student Dashboard Cards configuration with hover expansion previews
   const STUDENT_DASHBOARD_CARDS: DashboardCardConfig[] = [
     {
       id: 'announcements',
@@ -582,6 +585,20 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
       ],
       onAction: () => setActiveModule('attendance'),
     },
+    {
+      id: 'parent_connect',
+      title: 'Parent Connect',
+      iconSrc: '/student-section-icons/parent-connect.png',
+      desc: 'A dedicated space for student-parent communication.',
+      count: 'Parent Connect',
+      badgeBg: '#FFFFFF',
+      badgeColor: '#343434',
+      previews: [
+        { label: 'For', value: 'Students and their families', highlight: true },
+        { label: 'Purpose', value: 'Student-parent communication' },
+      ],
+      onAction: () => setActiveModule('parent_connect'),
+    },
   ];
 
   // 100 Students filtering
@@ -643,7 +660,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
           currentRole={currentRole}
           isExpanded={sidebarExpanded}
           isLocked={sidebarLocked}
-          onHoverChange={setSidebarHovered}
+          onHoverChange={tabModeSidebar ? undefined : setSidebarHovered}
           onToggleLock={() => setSidebarLocked((locked) => !locked)}
           activeAdminSectionId={activeAdminSectionId}
         />
@@ -674,7 +691,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
             <AnimatePresence mode="wait">
               <PageTransition pageKey={`${currentRole}_${activeModule}_${activeAdminSectionId ?? ''}`}>
               {/* ─────────────────────────────────────────────────────────────
-                  ROLE = STUDENT VIEW: 8 INTERACTIVE EXPANDABLE CARDS
+                  ROLE = STUDENT VIEW: 10 INTERACTIVE EXPANDABLE CARDS
                   ───────────────────────────────────────────────────────────── */}
               {currentRole === 'student' && activeModule === 'dashboard' && (
                 <div className="space-y-6 md:space-y-7">
@@ -770,7 +787,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     </span>
                   </div>
 
-                  {/* 3. EIGHT STUDENT DASHBOARD CARDS WITH HOVER EXPANSION */}
+                  {/* Student dashboard cards with hover expansion */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-x-6 lg:gap-y-7 items-start">
                     {STUDENT_DASHBOARD_CARDS.map((card) => (
                       <ExpandableDashboardCard
@@ -783,6 +800,42 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     ))}
                   </div>
                 </div>
+              )}
+
+              {currentRole === 'student' && activeModule === 'parent_connect' && (
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveModule('dashboard')}
+                      aria-label="Back to dashboard"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#A60000]">Student services</p>
+                      <h1 className="text-xl font-black tracking-tight text-[#172033]">Parent Connect</h1>
+                      <p className="text-xs text-slate-500">A dedicated space for student-parent communication</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
+                    <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+                      <img
+                        src="/student-section-icons/parent-connect.png"
+                        alt=""
+                        className="h-28 w-28 shrink-0 object-contain"
+                      />
+                      <div>
+                        <h2 className="text-lg font-extrabold tracking-tight text-[#172033]">Parent Connect</h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                          Student-parent communication, gathered in one dedicated section.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               )}
 
               {currentRole !== 'student' && activeModule === 'dashboard' && activeAdminSection && (
@@ -3373,6 +3426,7 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                 activeModule !== 'college_calendar' &&
                 activeModule !== 'complaints' &&
                 activeModule !== 'reported_issues' &&
+                activeModule !== 'parent_connect' &&
                 activeModule !== 'classes' &&
                 activeModule !== 'batches' &&
                 activeModule !== 'questions' &&
