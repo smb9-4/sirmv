@@ -910,9 +910,17 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                               </span>
                             )}
                           </span>
-                          <span className={`mt-4 font-black text-sm transition-colors ${
-                            isHovered ? 'text-[#A60000]' : 'text-stone-800'
-                          } group-focus-visible:text-[#A60000]`}>{item.label}</span>
+                          <motion.span
+                            animate={{
+                              y: isHovered ? -5 : 0,
+                            }}
+                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                            className={`mt-4 font-black text-sm transition-colors ${
+                              isHovered ? 'text-[#A60000]' : 'text-stone-800'
+                            } group-focus-visible:text-[#A60000]`}
+                          >
+                            {item.label}
+                          </motion.span>
                           <span className="mt-1 text-[11px] leading-relaxed text-stone-500">
                             {ADMIN_ITEM_DESCRIPTIONS[item.id]}
                           </span>
@@ -1020,9 +1028,17 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                           </motion.div>
 
                           <div className="text-center">
-                            <h2 className={`font-black text-sm uppercase tracking-wide transition-colors duration-300 ${
-                              isHovered ? 'text-[#A60000]' : 'text-stone-900'
-                            } group-focus-visible:text-[#A60000]`}>{section.sectionLabel}</h2>
+                            <motion.h2
+                              animate={{
+                                y: isHovered ? -8 : 0,
+                              }}
+                              transition={{ duration: 0.22, ease: 'easeOut' }}
+                              className={`font-black text-sm uppercase tracking-wide transition-colors duration-300 ${
+                                isHovered ? 'text-[#A60000]' : 'text-stone-900'
+                              } group-focus-visible:text-[#A60000]`}
+                            >
+                              {section.sectionLabel}
+                            </motion.h2>
                           </div>
 
                           <span

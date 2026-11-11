@@ -85,11 +85,17 @@ export default function ExpandableDashboardCard({
           />
         </motion.div>
 
-        <h3 className={`text-[15px] font-bold tracking-tight transition-colors ${
-          isExpanded ? 'text-[#A60000]' : 'text-[#3D405B]'
-        }`}>
+        <motion.h3
+          animate={{
+            y: isExpanded ? -8 : 0,
+          }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className={`text-[15px] font-bold tracking-tight transition-colors ${
+            isExpanded ? 'text-[#A60000]' : 'text-[#3D405B]'
+          }`}
+        >
           {card.title}
-        </h3>
+        </motion.h3>
 
         <AnimatePresence>
           {isExpanded && (
