@@ -15,6 +15,7 @@ interface ERPSidebarProps {
   activeModule: ERPModuleId;
   onSelectModule: (moduleId: ERPModuleId) => void;
   currentRole?: UserRoleType;
+  displayMode?: 'website' | 'tab';
   isExpanded?: boolean;
   isLocked?: boolean;
   onHoverChange?: (hovered: boolean) => void;
@@ -297,6 +298,7 @@ export default function ERPSidebar({
   activeModule,
   onSelectModule,
   currentRole = 'principal',
+  displayMode = 'tab',
   isExpanded: externalExpanded,
   isLocked = false,
   onHoverChange,
@@ -305,11 +307,12 @@ export default function ERPSidebar({
   onSelectAdminSection,
 }: ERPSidebarProps) {
   const isExpanded = externalExpanded ?? false;
+  const isTabMode = displayMode === 'tab';
 
   const isAdmin = currentRole === 'admin';
   const isStudent = currentRole === 'student';
   const isCompactPortal = isStudent || isAdmin;
-  const disableAnimations = isAdmin;
+  const disableAnimations = isTabMode;
   const sidebarWidth = isCompactPortal ? 76 : 86;
   const expandedSidebarWidth = isCompactPortal ? 126 : 236;
   const sidebarToggleLabel = isLocked

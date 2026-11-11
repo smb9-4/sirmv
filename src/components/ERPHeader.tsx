@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, Check, ShieldCheck, User, Users, GraduationCap, Sparkles, LogOut, Tablet } from 'lucide-react';
+import { Bell, ChevronDown, Check, ShieldCheck, User, Users, GraduationCap, Sparkles, LogOut, Tablet, Monitor } from 'lucide-react';
 import type { Announcement } from '../types';
 
 export type UserRoleType = 'admin' | 'student' | 'super_admin' | 'principal' | 'teacher';
@@ -46,6 +46,8 @@ interface ERPHeaderProps {
   onRoleChange: (newRole: UserRoleType) => void;
   unreadAnnouncements: Announcement[];
   onOpenAnnouncement: (announcement: Announcement) => void;
+  displayMode?: 'website' | 'tab';
+  onDisplayModeChange?: (mode: 'website' | 'tab') => void;
 }
 
 export default function ERPHeader({
@@ -53,6 +55,8 @@ export default function ERPHeader({
   onRoleChange,
   unreadAnnouncements,
   onOpenAnnouncement,
+  displayMode = 'tab',
+  onDisplayModeChange,
 }: ERPHeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -93,8 +97,40 @@ export default function ERPHeader({
         </div>
       </div>
 
-      {/* Right side: Notification & Role Switcher Dropdown */}
+      {/* Right side: Mode Toggle, Notification & Role Switcher Dropdown */}
       <div className="flex items-center gap-3">
+        {/* Display Mode Toggle: Website vs Tab */}
+        {onDisplayModeChange && (
+          <div className="flex items-center bg-black/20 rounded-xl p-0.5 border border-white/10">
+            <button
+              type="button"
+              onClick={() => onDisplayModeChange('website')}
+              title="Website Mode (animations enabled)"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                displayMode === 'website'
+                  ? 'bg-white text-[#A41419] shadow-xs'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Monitor size={12} />
+              <span className="hidden md:inline">Website</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDisplayModeChange('tab')}
+              title="Tab Mode (animations disabled)"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                displayMode === 'tab'
+                  ? 'bg-white text-[#A41419] shadow-xs'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Tablet size={12} />
+              <span className="hidden md:inline">Tab</span>
+            </button>
+          </div>
+        )}
+
         {normalizedRole === 'student' && (
           <>
             {/* Notification Bell */}
