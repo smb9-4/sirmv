@@ -7,6 +7,9 @@ import ERPHeader, { UserRoleType, ROLE_PROFILES } from '../components/ERPHeader'
 import StudentDetailModal from '../components/StudentDetailModal';
 import ExamMCQReviewModal from '../components/ExamMCQReviewModal';
 import AdminModuleView from '../components/AdminModuleView';
+import { StudentParentConnectSection } from '../calling/components/StudentParentConnectSection';
+import { InCallScreen } from '../calling/components/InCallScreen';
+import { IncomingCallModal } from '../calling/components/IncomingCallModal';
 import AnimatedCounter from '../components/AnimatedCounter';
 import SignatureAcademicLoader from '../components/SignatureAcademicLoader';
 import PageTransition from '../components/PageTransition';
@@ -334,8 +337,19 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarLocked, setSidebarLocked] = useState(false);
   const compactSidebar = currentRole === 'student' || currentRole === 'admin';
-  const tabModeSidebar = currentRole === 'admin';
-  const sidebarExpanded = tabModeSidebar ? sidebarLocked : sidebarHovered || sidebarLocked;
+
+  // Display mode: 'tab' = no hover-expand/animations; 'website' = full hover animations
+  const [displayMode, setDisplayMode] = useState<'website' | 'tab'>(() =>
+    (localStorage.getItem('sirmv_display_mode') as 'website' | 'tab') || 'tab'
+  );
+  const handleDisplayModeChange = (mode: 'website' | 'tab') => {
+    setDisplayMode(mode);
+    localStorage.setItem('sirmv_display_mode', mode);
+  };
+  const isTabMode = displayMode === 'tab';
+
+  // In Tab mode sidebar never hover-expands; in Website mode hover+lock both expand
+  const sidebarExpanded = isTabMode ? false : (sidebarHovered || sidebarLocked);
   const sidebarWidth = compactSidebar
     ? sidebarExpanded ? 126 : 76
     : sidebarExpanded ? 236 : 86;
@@ -658,10 +672,11 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
             setHoveredAdminModuleId(null);
           }}
           currentRole={currentRole}
+          displayMode={displayMode}
           isExpanded={sidebarExpanded}
           isLocked={sidebarLocked}
-          onHoverChange={tabModeSidebar ? undefined : setSidebarHovered}
-          onToggleLock={() => setSidebarLocked((locked) => !locked)}
+          onHoverChange={isTabMode ? undefined : setSidebarHovered}
+          onToggleLock={isTabMode ? undefined : () => setSidebarLocked((locked) => !locked)}
           activeAdminSectionId={activeAdminSectionId}
         />
 
@@ -676,6 +691,8 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
               onRoleChange={handleRoleChange}
               unreadAnnouncements={unreadAnnouncements}
               onOpenAnnouncement={handleOpenAnnouncement}
+              displayMode={displayMode}
+              onDisplayModeChange={handleDisplayModeChange}
             />
           </div>
 
@@ -816,25 +833,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#A60000]">Student services</p>
                       <h1 className="text-xl font-black tracking-tight text-[#172033]">Parent Connect</h1>
-                      <p className="text-xs text-slate-500">A dedicated space for student-parent communication</p>
+                      <p className="text-xs text-slate-500">Encrypted peer-to-peer WebRTC voice calling with verified parents</p>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 md:p-8">
-                    <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-                      <img
-                        src="/student-section-icons/parent-connect.png"
-                        alt=""
-                        className="h-28 w-28 shrink-0 object-contain"
-                      />
-                      <div>
-                        <h2 className="text-lg font-extrabold tracking-tight text-[#172033]">Parent Connect</h2>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                          Student-parent communication, gathered in one dedicated section.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Integrated Calling Component without external navbar/header */}
+                  <StudentParentConnectSection />
                 </section>
               )}
 
@@ -3477,6 +3481,12 @@ export default function ERPPortalPage({ initialRole, initialModule }: ERPPortalP
         onClose={() => setReviewExamModal(null)}
         sidebarWidth={sidebarWidth}
       />
+
+      {/* Global In-Call Overlay for Voice Calls */}
+      <InCallScreen />
+
+      {/* Global Incoming Call Alert Modal */}
+      <IncomingCallModal />
     </div>
   );
 }

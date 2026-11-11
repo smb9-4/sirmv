@@ -156,20 +156,28 @@ function FlatNavItem({
           </AnimatePresence>
         )}
 
-        {isExpanded && (
-          <span className={`block leading-tight text-white group-hover:text-[#FFE59A] ${
-            stackedLayout
-              ? 'w-full flex-none whitespace-normal px-0.5 text-center text-[10px] font-semibold'
-              : `transition-all text-[13px] font-black tracking-normal ${
-                labelsBelowIcon
-                  ? 'w-full flex-none whitespace-normal text-center text-[9px]'
-                  : 'flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px]'
-              }`
-          }`}
-          >
-            {item.label}
-          </span>
-        )}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.span
+              key="expanded-label"
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.14, delay: 0.1, ease: 'easeOut' }}
+              className={`block leading-tight text-white group-hover:text-[#FFE59A] ${
+                stackedLayout
+                  ? 'w-full flex-none whitespace-normal px-0.5 text-center text-[10px] font-semibold'
+                  : `transition-colors text-[13px] font-black tracking-normal ${
+                    labelsBelowIcon
+                      ? 'w-full flex-none whitespace-normal text-center text-[9px]'
+                      : 'flex-1 truncate max-[480px]:w-full max-[480px]:flex-none max-[480px]:whitespace-normal max-[480px]:overflow-visible max-[480px]:text-[10px]'
+                  }`
+              }`}
+            >
+              {item.label}
+            </motion.span>
+          )}
+        </AnimatePresence>
 
         {item.badge && isExpanded && !stackedLayout && (
           <span className={`ml-auto ${labelsBelowIcon ? 'text-[8px]' : 'text-[10px]'} px-2 py-0.5 rounded-full font-black uppercase shadow-2xs border ${
@@ -335,9 +343,9 @@ export default function ERPSidebar({
   return (
     <motion.aside
       animate={{ width: isExpanded ? expandedSidebarWidth : sidebarWidth }}
-      transition={disableAnimations ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30, mass: 0.9 }}
-      onPointerEnter={() => onHoverChange?.(true)}
-      onPointerLeave={() => onHoverChange?.(false)}
+      transition={disableAnimations ? { duration: 0 } : { type: 'tween', duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+      onPointerEnter={isTabMode ? undefined : () => onHoverChange?.(true)}
+      onPointerLeave={isTabMode ? undefined : () => onHoverChange?.(false)}
       className={`shrink-0 border-r border-white/10 h-full flex flex-col justify-between py-3 select-none z-[60] shadow-[1px_0_8px_rgba(0,0,0,0.06)] overflow-x-hidden ${
         isCompactPortal ? 'bg-[#8F1016]' : 'bg-[#610000]'
       } ${

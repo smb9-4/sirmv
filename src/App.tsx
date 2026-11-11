@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { PortalProvider } from './context/PortalContext';
+import { AuthProvider as CallingAuthProvider } from './calling/context/AuthContext';
+import { CallProvider as CallingCallProvider } from './calling/context/CallContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Student Pages
@@ -34,37 +36,41 @@ import ERPPortalPage from './pages/ERPPortalPage';
 export default function App() {
   return (
     <AuthProvider>
-      <PortalProvider>
-        <Router>
-          <Routes>
-            {/* Primary Unified ERP Portal Route (Direct access, no login wall, defaults to Principal) */}
-            <Route path="/" element={<ERPPortalPage />} />
-            <Route path="/portal" element={<ERPPortalPage />} />
-            <Route path="/erp" element={<ERPPortalPage />} />
+      <CallingAuthProvider>
+        <CallingCallProvider>
+          <PortalProvider>
+            <Router>
+              <Routes>
+                {/* Primary Unified ERP Portal Route (Direct access, no login wall, defaults to Principal) */}
+                <Route path="/" element={<ERPPortalPage />} />
+                <Route path="/portal" element={<ERPPortalPage />} />
+                <Route path="/erp" element={<ERPPortalPage />} />
 
-            {/* Student Routes (Directly mapped to ERP Portal with Student Role and Vertical Dock) */}
-            <Route path="/student/dashboard" element={<ERPPortalPage initialRole="student" initialModule="dashboard" />} />
-            <Route path="/student/announcements" element={<ERPPortalPage initialRole="student" initialModule="announcements" />} />
-            <Route path="/student/exams" element={<ERPPortalPage initialRole="student" initialModule="tests" />} />
-            <Route path="/student/take-exam" element={<ERPPortalPage initialRole="student" initialModule="tests" />} />
-            <Route path="/student/results" element={<ERPPortalPage initialRole="student" initialModule="reports" />} />
-            <Route path="/student/notes" element={<ERPPortalPage initialRole="student" initialModule="notes" />} />
-            <Route path="/student/materials" element={<ERPPortalPage initialRole="student" initialModule="materials" />} />
-            <Route path="/student/timetable" element={<ERPPortalPage initialRole="student" initialModule="timetable" />} />
-            <Route path="/student/calendar" element={<ERPPortalPage initialRole="student" initialModule="college_calendar" />} />
-            <Route path="/student/attendance" element={<ERPPortalPage initialRole="student" initialModule="attendance" />} />
-            <Route path="/student/complaints" element={<ERPPortalPage initialRole="student" initialModule="complaints" />} />
-            <Route path="/student/*" element={<ERPPortalPage initialRole="student" />} />
+                {/* Student Routes (Directly mapped to ERP Portal with Student Role and Vertical Dock) */}
+                <Route path="/student/dashboard" element={<ERPPortalPage initialRole="student" initialModule="dashboard" />} />
+                <Route path="/student/announcements" element={<ERPPortalPage initialRole="student" initialModule="announcements" />} />
+                <Route path="/student/exams" element={<ERPPortalPage initialRole="student" initialModule="tests" />} />
+                <Route path="/student/take-exam" element={<ERPPortalPage initialRole="student" initialModule="tests" />} />
+                <Route path="/student/results" element={<ERPPortalPage initialRole="student" initialModule="reports" />} />
+                <Route path="/student/notes" element={<ERPPortalPage initialRole="student" initialModule="notes" />} />
+                <Route path="/student/materials" element={<ERPPortalPage initialRole="student" initialModule="materials" />} />
+                <Route path="/student/timetable" element={<ERPPortalPage initialRole="student" initialModule="timetable" />} />
+                <Route path="/student/calendar" element={<ERPPortalPage initialRole="student" initialModule="college_calendar" />} />
+                <Route path="/student/attendance" element={<ERPPortalPage initialRole="student" initialModule="attendance" />} />
+                <Route path="/student/complaints" element={<ERPPortalPage initialRole="student" initialModule="complaints" />} />
+                <Route path="/student/*" element={<ERPPortalPage initialRole="student" />} />
 
-            {/* Professor / Faculty Routes */}
-            <Route path="/professor/dashboard" element={<ERPPortalPage initialRole="teacher" initialModule="dashboard" />} />
-            <Route path="/professor/*" element={<ERPPortalPage initialRole="teacher" />} />
+                {/* Professor / Faculty Routes */}
+                <Route path="/professor/dashboard" element={<ERPPortalPage initialRole="teacher" initialModule="dashboard" />} />
+                <Route path="/professor/*" element={<ERPPortalPage initialRole="teacher" />} />
 
-            {/* Fallback to ERP Portal */}
-            <Route path="*" element={<ERPPortalPage />} />
-          </Routes>
-        </Router>
-      </PortalProvider>
+                {/* Fallback to ERP Portal */}
+                <Route path="*" element={<ERPPortalPage />} />
+              </Routes>
+            </Router>
+          </PortalProvider>
+        </CallingCallProvider>
+      </CallingAuthProvider>
     </AuthProvider>
   );
 }
